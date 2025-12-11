@@ -493,10 +493,21 @@ function add_event($db, $post) {
                 'allow_empty' => true,
                 'min' => 0,
             ]);
-            $registration_deadline = tpl_validate_date($post['registration_deadline'] ?? '', 'Y-m-d', [
-                'field' => 'Kayıt bitiş tarihi',
-                'allow_empty' => true,
-            ]);
+            // registration_deadline datetime-local formatında gelebilir (Y-m-d\TH:i)
+            $registration_deadline_raw = trim($post['registration_deadline'] ?? '');
+            $registration_deadline = '';
+            if ($registration_deadline_raw !== '') {
+                // datetime-local formatını parse et (Y-m-d\TH:i veya Y-m-d H:i)
+                if (preg_match('/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/', $registration_deadline_raw, $matches)) {
+                    $registration_deadline = $matches[1]; // Sadece tarih kısmını al
+                } else {
+                    // Sadece tarih formatıysa direkt kullan
+                    $registration_deadline = tpl_validate_date($registration_deadline_raw, 'Y-m-d', [
+                        'field' => 'Kayıt bitiş tarihi',
+                        'allow_empty' => false,
+                    ]);
+                }
+            }
             $end_date = tpl_validate_date($post['end_date'] ?? '', 'Y-m-d', [
                 'field' => 'Bitiş tarihi',
                 'allow_empty' => true,
@@ -736,10 +747,21 @@ function update_event($db, $post) {
                 'allow_empty' => true,
                 'min' => 0,
             ]);
-            $registration_deadline = tpl_validate_date($post['registration_deadline'] ?? '', 'Y-m-d', [
-                'field' => 'Kayıt bitiş tarihi',
-                'allow_empty' => true,
-            ]);
+            // registration_deadline datetime-local formatında gelebilir (Y-m-d\TH:i)
+            $registration_deadline_raw = trim($post['registration_deadline'] ?? '');
+            $registration_deadline = '';
+            if ($registration_deadline_raw !== '') {
+                // datetime-local formatını parse et (Y-m-d\TH:i veya Y-m-d H:i)
+                if (preg_match('/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/', $registration_deadline_raw, $matches)) {
+                    $registration_deadline = $matches[1]; // Sadece tarih kısmını al
+                } else {
+                    // Sadece tarih formatıysa direkt kullan
+                    $registration_deadline = tpl_validate_date($registration_deadline_raw, 'Y-m-d', [
+                        'field' => 'Kayıt bitiş tarihi',
+                        'allow_empty' => false,
+                    ]);
+                }
+            }
             $end_date = tpl_validate_date($post['end_date'] ?? '', 'Y-m-d', [
                 'field' => 'Bitiş tarihi',
                 'allow_empty' => true,
