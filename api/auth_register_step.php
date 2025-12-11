@@ -370,51 +370,52 @@ function sendVerificationEmail($email, $code) {
             return false;
         }
         
-        // PHPMailer kullan (eğer yüklüyse) veya basit mail() fonksiyonu
-        if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host = $smtp['host'];
-            $mail->SMTPAuth = true;
-            $mail->Username = $smtp['username'];
-            $mail->Password = $smtp['password'];
-            $mail->SMTPSecure = $smtp['encryption'] ?? 'tls';
-            $mail->Port = $smtp['port'] ?? 587;
-            $mail->CharSet = 'UTF-8';
-            
-            $mail->setFrom($smtp['from_email'] ?? $smtp['username'], $smtp['from_name'] ?? 'UniPanel');
-            $mail->addAddress($email);
-            $mail->isHTML(true);
-            
-            $mail->Subject = 'UniPanel - E-posta Doğrulama Kodu';
-            $mail->Body = "
-            <html>
-            <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
-                    <h2 style='color: #667eea;'>UniPanel - E-posta Doğrulama Kodu</h2>
-                    <p>Merhaba,</p>
-                    <p>Hesap oluşturma işleminiz için doğrulama kodunuz:</p>
-                    <div style='background-color: #f8f9fa; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;'>
-                        <h1 style='color: #667eea; font-size: 36px; margin: 0; letter-spacing: 4px;'>$code</h1>
-                    </div>
-                    <p>Bu kodu kullanarak hesabınızı doğrulayabilirsiniz.</p>
-                    <p>Kod 1 saat geçerlidir.</p>
-                    <p style='color: #666; font-size: 12px; margin-top: 30px;'>Bu e-postayı siz talep etmediyseniz, lütfen görmezden gelin.</p>
+        // SMTP ile e-posta gönder (communication.php fonksiyonunu kullan)
+        $communicationPath = __DIR__ . '/../templates/functions/communication.php';
+        if (file_exists($communicationPath)) {
+            require_once $communicationPath;
+        }
+        
+        $subject = 'UniPanel - E-posta Doğrulama Kodu';
+        $htmlBody = "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <h2 style='color: #667eea;'>UniPanel - E-posta Doğrulama Kodu</h2>
+                <p>Merhaba,</p>
+                <p>Hesap oluşturma işleminiz için doğrulama kodunuz:</p>
+                <div style='background-color: #f8f9fa; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;'>
+                    <h1 style='color: #667eea; font-size: 36px; margin: 0; letter-spacing: 4px;'>$code</h1>
                 </div>
-            </body>
-            </html>
-            ";
-            $mail->AltBody = "Doğrulama kodunuz: $code\n\nBu kodu kullanarak hesabınızı doğrulayabilirsiniz.\n\nKod 1 saat geçerlidir.";
+                <p>Bu kodu kullanarak hesabınızı doğrulayabilirsiniz.</p>
+                <p>Kod 1 saat geçerlidir.</p>
+                <p style='color: #666; font-size: 12px; margin-top: 30px;'>Bu e-postayı siz talep etmediyseniz, lütfen görmezden gelin.</p>
+            </div>
+        </body>
+        </html>
+        ";
+        $textBody = "Doğrulama kodunuz: $code\n\nBu kodu kullanarak hesabınızı doğrulayabilirsiniz.\n\nKod 1 saat geçerlidir.";
+        
+        $from_name = $smtp['from_name'] ?? 'UniPanel';
+        $from_email = $smtp['from_email'] ?? $smtp['username'];
+        
+        // send_smtp_mail fonksiyonu varsa kullan
+        if (function_exists('send_smtp_mail')) {
+            $smtpConfig = [
+                'host' => $smtp['host'],
+                'port' => (int)($smtp['port'] ?? 587),
+                'secure' => $smtp['encryption'] ?? 'tls',
+                'username' => $smtp['username'],
+                'password' => $smtp['password'],
+            ];
             
-            return $mail->send();
+            return send_smtp_mail($email, $subject, $htmlBody, $from_name, $from_email, $smtpConfig);
         } else {
             // Basit mail() fonksiyonu kullan
-            $subject = 'UniPanel - E-posta Doğrulama Kodu';
-            $message = "Doğrulama kodunuz: $code\n\nBu kodu kullanarak hesabınızı doğrulayabilirsiniz.\n\nKod 1 saat geçerlidir.";
-            $headers = "From: " . ($smtp['from_email'] ?? $smtp['username']) . "\r\n";
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $headers = "From: $from_email\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             
-            return mail($email, $subject, $message, $headers);
+            return mail($email, $subject, $htmlBody, $headers);
         }
     } catch (Exception $e) {
         error_log("Email gönderme hatası: " . $e->getMessage());
