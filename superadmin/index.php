@@ -3574,12 +3574,12 @@ foreach ($community_details as $details) {
                                         <p class="text-sm text-gray-500 mt-1">Toplam <span id="totalCommunitiesCount"><?= count($communities) ?></span> topluluk</p>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <select id="filterStatus" onchange="filterCommunities()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                        <select id="filterStatus" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
                                             <option value="all">Tüm Durumlar</option>
                                             <option value="active">Aktif</option>
                                             <option value="inactive">Kapalı</option>
                                         </select>
-                                        <select id="filterTier" onchange="filterCommunities()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                        <select id="filterTier" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
                                             <option value="all">Tüm Planlar</option>
                                             <option value="standard">Standart</option>
                                             <option value="professional">Profesyonel</option>
@@ -5196,66 +5196,115 @@ let allCommunities = <?= json_encode($communities ?? []) ?>;
 let isLoadingCommunities = false;
 
 function filterCommunities() {
-    const searchTerm = (document.getElementById('communitySearch')?.value || '').toLowerCase().trim();
-    const universityFilter = (document.getElementById('filterUniversity')?.value || '').toLowerCase().trim();
-    const statusFilter = document.getElementById('filterStatus')?.value || 'all';
-    const tierFilter = document.getElementById('filterTier')?.value || 'all';
-    
-    const items = document.querySelectorAll('.community-item');
-    let visibleCount = 0;
-    
-    items.forEach(item => {
-        const name = (item.getAttribute('data-name') || '').toLowerCase();
-        const folder = (item.getAttribute('data-folder') || '').toLowerCase();
-        const university = (item.getAttribute('data-university') || '').toLowerCase();
-        const status = item.getAttribute('data-status') || '';
-        const tier = item.getAttribute('data-tier') || 'none';
+    try {
+        const searchTerm = (document.getElementById('communitySearch')?.value || '').toLowerCase().trim();
+        const universityFilter = (document.getElementById('filterUniversity')?.value || '').toLowerCase().trim();
+        const statusFilter = document.getElementById('filterStatus')?.value || 'all';
+        const tierFilter = document.getElementById('filterTier')?.value || 'all';
         
-        // Arama filtresi
-        const matchesSearch = !searchTerm || 
-            name.includes(searchTerm) || 
-            folder.includes(searchTerm) || 
-            university.includes(searchTerm);
+        const items = document.querySelectorAll('.community-item');
+        let visibleCount = 0;
         
-        // Üniversite filtresi
-        const matchesUniversity = !universityFilter || university.includes(universityFilter);
-        
-        // Durum filtresi
-        const matchesStatus = statusFilter === 'all' || 
-            (statusFilter === 'active' && status === 'active') ||
-            (statusFilter === 'inactive' && status !== 'active');
-        
-        // Plan filtresi
-        const matchesTier = tierFilter === 'all' || tier === tierFilter;
-        
-        if (matchesSearch && matchesUniversity && matchesStatus && matchesTier) {
-            item.style.display = '';
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
+        if (items.length === 0) {
+            console.warn('No community items found');
+            return;
         }
-    });
-    
-    // Filtrelenmiş sayıyı göster
-    const filteredCountEl = document.getElementById('filteredCount');
-    if (filteredCountEl) {
-        if (searchTerm || universityFilter || statusFilter !== 'all' || tierFilter !== 'all') {
-            filteredCountEl.textContent = `${visibleCount} topluluk gösteriliyor`;
-            filteredCountEl.classList.remove('hidden');
-        } else {
-            filteredCountEl.textContent = '';
-            filteredCountEl.classList.add('hidden');
+        
+        items.forEach(item => {
+            const name = (item.getAttribute('data-name') || '').toLowerCase();
+            const folder = (item.getAttribute('data-folder') || '').toLowerCase();
+            const university = (item.getAttribute('data-university') || '').toLowerCase();
+            const status = item.getAttribute('data-status') || '';
+            const tier = item.getAttribute('data-tier') || 'none';
+            
+            // Arama filtresi
+            const matchesSearch = !searchTerm || 
+                name.includes(searchTerm) || 
+                folder.includes(searchTerm) || 
+                university.includes(searchTerm);
+            
+            // Üniversite filtresi
+            const matchesUniversity = !universityFilter || university.includes(universityFilter);
+            
+            // Durum filtresi
+            const matchesStatus = statusFilter === 'all' || 
+                (statusFilter === 'active' && status === 'active') ||
+                (statusFilter === 'inactive' && status !== 'active');
+            
+            // Plan filtresi
+            const matchesTier = tierFilter === 'all' || tier === tierFilter;
+            
+            if (matchesSearch && matchesUniversity && matchesStatus && matchesTier) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Filtrelenmiş sayıyı göster
+        const filteredCountEl = document.getElementById('filteredCount');
+        if (filteredCountEl) {
+            if (searchTerm || universityFilter || statusFilter !== 'all' || tierFilter !== 'all') {
+                filteredCountEl.textContent = `${visibleCount} topluluk gösteriliyor`;
+                filteredCountEl.classList.remove('hidden');
+            } else {
+                filteredCountEl.textContent = '';
+                filteredCountEl.classList.add('hidden');
+            }
         }
+    } catch (error) {
+        console.error('filterCommunities error:', error);
     }
 }
 
 function clearFilters() {
-    document.getElementById('communitySearch').value = '';
-    document.getElementById('filterUniversity').value = '';
-    document.getElementById('filterStatus').value = 'all';
-    document.getElementById('filterTier').value = 'all';
+    const searchInput = document.getElementById('communitySearch');
+    const universityInput = document.getElementById('filterUniversity');
+    const statusSelect = document.getElementById('filterStatus');
+    const tierSelect = document.getElementById('filterTier');
+    
+    if (searchInput) searchInput.value = '';
+    if (universityInput) universityInput.value = '';
+    if (statusSelect) statusSelect.value = 'all';
+    if (tierSelect) tierSelect.value = 'all';
+    
     filterCommunities();
 }
+
+// Event listener'ları DOMContentLoaded'da bağla
+document.addEventListener('DOMContentLoaded', function() {
+    const communitySearch = document.getElementById('communitySearch');
+    const filterUniversity = document.getElementById('filterUniversity');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterTier = document.getElementById('filterTier');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    
+    if (communitySearch) {
+        communitySearch.addEventListener('input', filterCommunities);
+        communitySearch.addEventListener('keyup', filterCommunities);
+    }
+    
+    if (filterUniversity) {
+        filterUniversity.addEventListener('input', filterCommunities);
+        filterUniversity.addEventListener('keyup', filterCommunities);
+    }
+    
+    if (filterStatus) {
+        filterStatus.addEventListener('change', filterCommunities);
+    }
+    
+    if (filterTier) {
+        filterTier.addEventListener('change', filterCommunities);
+    }
+    
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', clearFilters);
+    }
+    
+    // İlk yüklemede filtreleme yap (eğer varsayılan filtreler varsa)
+    filterCommunities();
+});
 
 function loadMoreCommunities() {
     if (isLoadingCommunities || !allCommunities || allCommunities.length === 0) return;
