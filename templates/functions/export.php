@@ -17,11 +17,33 @@ function export_members_csv() {
     // BOM ekle (Excel için UTF-8 desteği)
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
     
-    // Başlık satırı
-    fputcsv($output, ['Ad Soyad', 'E-posta', 'Öğrenci No', 'Telefon', 'Kayıt Tarihi'], ';');
+    // Başlık satırı - Tüm alanları dahil et
+    fputcsv($output, [
+        'Ad Soyad',
+        'E-posta',
+        'Öğrenci No',
+        'Telefon',
+        'Kayıt Tarihi',
+        'Bölüm',
+        'Sınıf',
+        'Doğum Tarihi',
+        'Adres',
+        'Notlar'
+    ], ';');
     
-    // Veriler
-    $stmt = $db->prepare("SELECT full_name, email, student_id, phone_number, registration_date FROM members WHERE club_id = ? ORDER BY full_name");
+    // Veriler - Tüm kolonları çek
+    $stmt = $db->prepare("SELECT 
+        full_name, 
+        email, 
+        student_id, 
+        phone_number, 
+        registration_date,
+        department,
+        class_year,
+        birth_date,
+        address,
+        notes
+    FROM members WHERE club_id = ? ORDER BY full_name");
     $stmt->bindValue(1, CLUB_ID, SQLITE3_INTEGER);
     $result = $stmt->execute();
     
@@ -31,7 +53,12 @@ function export_members_csv() {
             $row['email'] ?? '',
             $row['student_id'] ?? '',
             $row['phone_number'] ?? '',
-            $row['registration_date'] ?? ''
+            $row['registration_date'] ?? '',
+            $row['department'] ?? '',
+            $row['class_year'] ?? '',
+            $row['birth_date'] ?? '',
+            $row['address'] ?? '',
+            $row['notes'] ?? ''
         ], ';');
     }
     
@@ -52,10 +79,21 @@ function export_members_excel() {
     echo '<html><head><meta charset="UTF-8"></head><body>';
     echo '<table border="1">';
     echo '<tr style="background-color: #4472C4; color: white; font-weight: bold;">';
-    echo '<th>Ad Soyad</th><th>E-posta</th><th>Öğrenci No</th><th>Telefon</th><th>Kayıt Tarihi</th>';
+    echo '<th>Ad Soyad</th><th>E-posta</th><th>Öğrenci No</th><th>Telefon</th><th>Kayıt Tarihi</th><th>Bölüm</th><th>Sınıf</th><th>Doğum Tarihi</th><th>Adres</th><th>Notlar</th>';
     echo '</tr>';
     
-    $stmt = $db->prepare("SELECT full_name, email, student_id, phone_number, registration_date FROM members WHERE club_id = ? ORDER BY full_name");
+    $stmt = $db->prepare("SELECT 
+        full_name, 
+        email, 
+        student_id, 
+        phone_number, 
+        registration_date,
+        department,
+        class_year,
+        birth_date,
+        address,
+        notes
+    FROM members WHERE club_id = ? ORDER BY full_name");
     $stmt->bindValue(1, CLUB_ID, SQLITE3_INTEGER);
     $result = $stmt->execute();
     
@@ -66,6 +104,11 @@ function export_members_excel() {
         echo '<td>' . htmlspecialchars($row['student_id'] ?? '') . '</td>';
         echo '<td>' . htmlspecialchars($row['phone_number'] ?? '') . '</td>';
         echo '<td>' . htmlspecialchars($row['registration_date'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($row['department'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($row['class_year'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($row['birth_date'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($row['address'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($row['notes'] ?? '') . '</td>';
         echo '</tr>';
     }
     
@@ -160,6 +203,7 @@ function export_events_excel() {
 function import_members_csv($file_path) {
     $db = get_db();
     $imported = 0;
+    $updated = 0;
     $errors = [];
     
     // Güvenlik: Path validation - sadece geçici upload klasöründen dosya kabul et
@@ -179,33 +223,89 @@ function import_members_csv($file_path) {
         }
     }
     
+    // Eksik kolonları ekle
+    $members_columns = $db->query("PRAGMA table_info(members)");
+    $existing_columns = [];
+    while ($col = $members_columns->fetchArray(SQLITE3_ASSOC)) {
+        $existing_columns[] = $col['name'];
+    }
+    
+    $required_columns = ['department', 'class_year', 'birth_date', 'address', 'notes'];
+    foreach ($required_columns as $col) {
+        if (!in_array($col, $existing_columns)) {
+            try {
+                $db->exec("ALTER TABLE members ADD COLUMN $col TEXT");
+            } catch (Exception $e) {}
+        }
+    }
+    
     $handle = fopen($file_path, 'r');
     if ($handle === false) {
         return ['success' => false, 'message' => 'Dosya açılamadı'];
     }
     
-    // İlk satırı atla (başlık)
-    $header = fgetcsv($handle, 1000, ';');
+    // İlk satırı oku (başlık) - Esnek başlık desteği
+    $header = fgetcsv($handle, 2000, ';');
     if ($header === false) {
         fclose($handle);
         return ['success' => false, 'message' => 'Dosya formatı geçersiz'];
     }
     
+    // Başlık indekslerini bul (büyük/küçük harf duyarsız)
+    $header_map = [];
+    foreach ($header as $idx => $h) {
+        $h_lower = mb_strtolower(trim($h));
+        if (in_array($h_lower, ['ad soyad', 'adsoyad', 'isim', 'name', 'full_name'])) {
+            $header_map['full_name'] = $idx;
+        } elseif (in_array($h_lower, ['e-posta', 'eposta', 'email', 'e-mail', 'mail'])) {
+            $header_map['email'] = $idx;
+        } elseif (in_array($h_lower, ['öğrenci no', 'ogrenci no', 'student_id', 'student id', 'numara', 'no'])) {
+            $header_map['student_id'] = $idx;
+        } elseif (in_array($h_lower, ['telefon', 'phone', 'phone_number', 'tel', 'gsm'])) {
+            $header_map['phone_number'] = $idx;
+        } elseif (in_array($h_lower, ['kayıt tarihi', 'kayit tarihi', 'registration_date', 'registration date', 'tarih', 'date'])) {
+            $header_map['registration_date'] = $idx;
+        } elseif (in_array($h_lower, ['bölüm', 'bolum', 'department', 'fakülte', 'fakulte'])) {
+            $header_map['department'] = $idx;
+        } elseif (in_array($h_lower, ['sınıf', 'sinif', 'class', 'class_year', 'class year', 'sınıf yılı'])) {
+            $header_map['class_year'] = $idx;
+        } elseif (in_array($h_lower, ['doğum tarihi', 'dogum tarihi', 'birth_date', 'birth date', 'doğum'])) {
+            $header_map['birth_date'] = $idx;
+        } elseif (in_array($h_lower, ['adres', 'address'])) {
+            $header_map['address'] = $idx;
+        } elseif (in_array($h_lower, ['notlar', 'not', 'notes', 'açıklama', 'aciklama'])) {
+            $header_map['notes'] = $idx;
+        }
+    }
+    
+    // Zorunlu alanları kontrol et
+    if (!isset($header_map['full_name']) || !isset($header_map['email'])) {
+        fclose($handle);
+        return ['success' => false, 'message' => 'Dosyada "Ad Soyad" ve "E-posta" kolonları bulunamadı'];
+    }
+    
     $line_number = 1;
-    while (($data = fgetcsv($handle, 1000, ';')) !== false) {
+    while (($data = fgetcsv($handle, 2000, ';')) !== false) {
         $line_number++;
         
-        if (count($data) < 2) {
-            $errors[] = "Satır $line_number: Yetersiz veri";
+        // Boş satırları atla
+        if (count(array_filter($data)) === 0) {
             continue;
         }
         
-        $full_name = trim($data[0] ?? '');
-        $email = trim($data[1] ?? '');
-        $student_id = trim($data[2] ?? '');
-        $phone_number = trim($data[3] ?? '');
-        $registration_date = trim($data[4] ?? date('Y-m-d'));
+        // Verileri al
+        $full_name = isset($header_map['full_name']) ? trim($data[$header_map['full_name']] ?? '') : '';
+        $email = isset($header_map['email']) ? trim($data[$header_map['email']] ?? '') : '';
+        $student_id = isset($header_map['student_id']) ? trim($data[$header_map['student_id']] ?? '') : '';
+        $phone_number = isset($header_map['phone_number']) ? trim($data[$header_map['phone_number']] ?? '') : '';
+        $registration_date = isset($header_map['registration_date']) ? trim($data[$header_map['registration_date']] ?? '') : date('Y-m-d');
+        $department = isset($header_map['department']) ? trim($data[$header_map['department']] ?? '') : '';
+        $class_year = isset($header_map['class_year']) ? trim($data[$header_map['class_year']] ?? '') : '';
+        $birth_date = isset($header_map['birth_date']) ? trim($data[$header_map['birth_date']] ?? '') : '';
+        $address = isset($header_map['address']) ? trim($data[$header_map['address']] ?? '') : '';
+        $notes = isset($header_map['notes']) ? trim($data[$header_map['notes']] ?? '') : '';
         
+        // Validasyon
         if (empty($full_name) || empty($email)) {
             $errors[] = "Satır $line_number: Ad Soyad ve E-posta zorunludur";
             continue;
@@ -216,40 +316,104 @@ function import_members_csv($file_path) {
             continue;
         }
         
+        // Tarih formatını düzelt
+        if (!empty($registration_date) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $registration_date)) {
+            $timestamp = strtotime($registration_date);
+            if ($timestamp !== false) {
+                $registration_date = date('Y-m-d', $timestamp);
+            } else {
+                $registration_date = date('Y-m-d');
+            }
+        }
+        
+        if (!empty($birth_date) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birth_date)) {
+            $timestamp = strtotime($birth_date);
+            if ($timestamp !== false) {
+                $birth_date = date('Y-m-d', $timestamp);
+            } else {
+                $birth_date = '';
+            }
+        }
+        
         // E-posta zaten var mı kontrol et
         $check_stmt = $db->prepare("SELECT id FROM members WHERE club_id = ? AND email = ?");
         $check_stmt->bindValue(1, CLUB_ID, SQLITE3_INTEGER);
         $check_stmt->bindValue(2, $email, SQLITE3_TEXT);
         $check_result = $check_stmt->execute();
-        if ($check_result->fetchArray()) {
-            $errors[] = "Satır $line_number: Bu e-posta zaten kayıtlı: $email";
-            continue;
-        }
+        $existing = $check_result->fetchArray();
         
-        // Üye ekle
-        $stmt = $db->prepare("INSERT INTO members (club_id, full_name, email, student_id, phone_number, registration_date) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bindValue(1, CLUB_ID, SQLITE3_INTEGER);
-        $stmt->bindValue(2, $full_name, SQLITE3_TEXT);
-        $stmt->bindValue(3, $email, SQLITE3_TEXT);
-        $stmt->bindValue(4, $student_id, SQLITE3_TEXT);
-        $stmt->bindValue(5, $phone_number, SQLITE3_TEXT);
-        $stmt->bindValue(6, $registration_date, SQLITE3_TEXT);
-        
-        if ($stmt->execute()) {
-            $imported++;
-            clear_entity_cache('members');
+        if ($existing) {
+            // Güncelle
+            $stmt = $db->prepare("UPDATE members SET 
+                full_name = ?, 
+                student_id = ?, 
+                phone_number = ?, 
+                registration_date = ?,
+                department = ?,
+                class_year = ?,
+                birth_date = ?,
+                address = ?,
+                notes = ?
+            WHERE club_id = ? AND email = ?");
+            $stmt->bindValue(1, $full_name, SQLITE3_TEXT);
+            $stmt->bindValue(2, $student_id, SQLITE3_TEXT);
+            $stmt->bindValue(3, $phone_number, SQLITE3_TEXT);
+            $stmt->bindValue(4, $registration_date, SQLITE3_TEXT);
+            $stmt->bindValue(5, $department, SQLITE3_TEXT);
+            $stmt->bindValue(6, $class_year, SQLITE3_TEXT);
+            $stmt->bindValue(7, $birth_date, SQLITE3_TEXT);
+            $stmt->bindValue(8, $address, SQLITE3_TEXT);
+            $stmt->bindValue(9, $notes, SQLITE3_TEXT);
+            $stmt->bindValue(10, CLUB_ID, SQLITE3_INTEGER);
+            $stmt->bindValue(11, $email, SQLITE3_TEXT);
+            
+            if ($stmt->execute()) {
+                $updated++;
+                clear_entity_cache('members');
+            } else {
+                $errors[] = "Satır $line_number: Güncelleme hatası";
+            }
         } else {
-            $errors[] = "Satır $line_number: Veritabanı hatası";
+            // Yeni ekle
+            $stmt = $db->prepare("INSERT INTO members (
+                club_id, full_name, email, student_id, phone_number, registration_date,
+                department, class_year, birth_date, address, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bindValue(1, CLUB_ID, SQLITE3_INTEGER);
+            $stmt->bindValue(2, $full_name, SQLITE3_TEXT);
+            $stmt->bindValue(3, $email, SQLITE3_TEXT);
+            $stmt->bindValue(4, $student_id, SQLITE3_TEXT);
+            $stmt->bindValue(5, $phone_number, SQLITE3_TEXT);
+            $stmt->bindValue(6, $registration_date, SQLITE3_TEXT);
+            $stmt->bindValue(7, $department, SQLITE3_TEXT);
+            $stmt->bindValue(8, $class_year, SQLITE3_TEXT);
+            $stmt->bindValue(9, $birth_date, SQLITE3_TEXT);
+            $stmt->bindValue(10, $address, SQLITE3_TEXT);
+            $stmt->bindValue(11, $notes, SQLITE3_TEXT);
+            
+            if ($stmt->execute()) {
+                $imported++;
+                clear_entity_cache('members');
+            } else {
+                $errors[] = "Satır $line_number: Veritabanı hatası: " . $db->lastErrorMsg();
+            }
         }
     }
     
     fclose($handle);
     
+    $total = $imported + $updated;
+    $message = "$total işlem tamamlandı";
+    if ($imported > 0) $message .= " ($imported yeni üye eklendi)";
+    if ($updated > 0) $message .= " ($updated üye güncellendi)";
+    if (count($errors) > 0) $message .= ". " . count($errors) . " hata oluştu.";
+    
     return [
         'success' => true,
         'imported' => $imported,
+        'updated' => $updated,
         'errors' => $errors,
-        'message' => "$imported üye başarıyla eklendi. " . (count($errors) > 0 ? count($errors) . " hata oluştu." : "")
+        'message' => $message
     ];
 }
 
@@ -353,14 +517,58 @@ function download_sample_members_csv() {
     // BOM ekle (Excel için UTF-8 desteği)
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
     
-    // Başlık satırı
-    fputcsv($output, ['Ad Soyad', 'E-posta', 'Öğrenci No', 'Telefon', 'Kayıt Tarihi'], ';');
+    // Başlık satırı - Tüm alanları dahil et
+    fputcsv($output, [
+        'Ad Soyad',
+        'E-posta',
+        'Öğrenci No',
+        'Telefon',
+        'Kayıt Tarihi',
+        'Bölüm',
+        'Sınıf',
+        'Doğum Tarihi',
+        'Adres',
+        'Notlar'
+    ], ';');
     
-    // Örnek veriler
+    // Örnek veriler - Tüm alanları doldur
     $examples = [
-        ['Ahmet Yılmaz', 'ahmet.yilmaz@university.edu.tr', '2021001', '05551234567', date('Y-m-d')],
-        ['Ayşe Demir', 'ayse.demir@university.edu.tr', '2021002', '05559876543', date('Y-m-d')],
-        ['Mehmet Kaya', 'mehmet.kaya@university.edu.tr', '2021003', '05555555555', date('Y-m-d')],
+        [
+            'Ahmet Yılmaz',
+            'ahmet.yilmaz@university.edu.tr',
+            '2021001',
+            '05551234567',
+            date('Y-m-d'),
+            'Bilgisayar Mühendisliği',
+            '3',
+            '2000-05-15',
+            'İstanbul, Kadıköy',
+            'Aktif üye, etkinliklere katılıyor'
+        ],
+        [
+            'Ayşe Demir',
+            'ayse.demir@university.edu.tr',
+            '2021002',
+            '05559876543',
+            date('Y-m-d'),
+            'Elektrik-Elektronik Mühendisliği',
+            '2',
+            '2001-08-20',
+            'Ankara, Çankaya',
+            'Yeni üye'
+        ],
+        [
+            'Mehmet Kaya',
+            'mehmet.kaya@university.edu.tr',
+            '2021003',
+            '05555555555',
+            date('Y-m-d'),
+            'Endüstri Mühendisliği',
+            '4',
+            '1999-12-10',
+            'İzmir, Bornova',
+            'Yönetim kurulu üyesi'
+        ],
     ];
     
     foreach ($examples as $row) {

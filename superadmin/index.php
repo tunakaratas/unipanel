@@ -3565,15 +3565,52 @@ foreach ($community_details as $details) {
                         <!-- Mevcut Topluluklar -->
                         <div class="bg-white rounded-xl card-shadow">
                             <div class="p-6 border-b border-gray-200">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h2 class="text-2xl font-semibold text-gray-800 flex items-center">
-                                        <svg class="w-6 h-6 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                        Mevcut Topluluklar (<?= count($communities) ?>)
-                                    </h2>
+                                    <div class="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h2 class="text-2xl font-semibold text-gray-800 flex items-center">
+                                            <svg class="w-6 h-6 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                            Mevcut Topluluklar
+                                        </h2>
+                                        <p class="text-sm text-gray-500 mt-1">Toplam <span id="totalCommunitiesCount"><?= count($communities) ?></span> topluluk</p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <select id="filterStatus" onchange="filterCommunities()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                            <option value="all">Tüm Durumlar</option>
+                                            <option value="active">Aktif</option>
+                                            <option value="inactive">Kapalı</option>
+                                        </select>
+                                        <select id="filterTier" onchange="filterCommunities()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                            <option value="all">Tüm Planlar</option>
+                                            <option value="standard">Standart</option>
+                                            <option value="professional">Profesyonel</option>
+                                            <option value="business">Business</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <!-- Arama Kutusu -->
-                                <div class="mb-4">
-                                    <input type="text" id="communitySearch" onkeyup="filterCommunities()" placeholder="Topluluk adı, klasör adı veya üniversite ile arama yapın..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                
+                                <!-- Gelişmiş Arama ve Filtreleme -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                    <div class="relative">
+                                        <input type="text" id="communitySearch" onkeyup="filterCommunities()" placeholder="Topluluk adı, klasör veya üniversite ara..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="text" id="filterUniversity" onkeyup="filterCommunities()" placeholder="Üniversite ara..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="clearFilters()" class="px-4 py-2.5 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition duration-150 flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                            Temizle
+                                        </button>
+                                        <span id="filteredCount" class="text-sm text-gray-600 font-medium"></span>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -3591,9 +3628,97 @@ foreach ($community_details as $details) {
                                 $displayed_communities = array_slice($communities, 0, 30);
                                 $has_more_communities = count($communities) > 30;
                                 ?>
-                                <div class="divide-y divide-gray-200" id="communitiesList">
-                                    <?php foreach ($displayed_communities as $community): ?>
-                                        <div class="p-6 community-item" data-name="<?= strtolower(htmlspecialchars($community_details[$community]['name'] ?? $community)) ?>" data-folder="<?= strtolower(htmlspecialchars($community)) ?>" data-university="<?= strtolower(htmlspecialchars($community_details[$community]['university'] ?? '')) ?>">
+                                <div class="p-6">
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="communitiesList">
+                                    <?php foreach ($displayed_communities as $community): 
+                                        $is_active = isset($community_details[$community]['status']) ? $community_details[$community]['status'] : 'active';
+                                        $subscription = $community_details[$community]['subscription'] ?? null;
+                                        $tier = $subscription ? ($subscription['tier'] ?? 'standard') : 'none';
+                                    ?>
+                                        <div class="community-item bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 overflow-hidden" 
+                                             data-name="<?= strtolower(htmlspecialchars($community_details[$community]['name'] ?? $community)) ?>" 
+                                             data-folder="<?= strtolower(htmlspecialchars($community)) ?>" 
+                                             data-university="<?= strtolower(htmlspecialchars($community_details[$community]['university'] ?? '')) ?>"
+                                             data-status="<?= $is_active ?>"
+                                             data-tier="<?= $tier ?>">
+                                            <!-- Card Header -->
+                                            <div class="p-5 border-b border-gray-100">
+                                                <div class="flex items-start justify-between mb-3">
+                                                    <div class="flex items-center gap-3 flex-1">
+                                                        <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                                                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <h3 class="text-lg font-bold text-gray-800 truncate mb-1"><?= isset($community_details[$community]['name']) ? htmlspecialchars($community_details[$community]['name']) : htmlspecialchars($community) ?></h3>
+                                                            <p class="text-xs text-gray-500 truncate"><?= htmlspecialchars($community) ?></p>
+                                                        </div>
+                                                    </div>
+                                                    <?php if ($is_active === 'active'): ?>
+                                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                                                            <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
+                                                            Aktif
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                                                            <span class="w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>
+                                                            Kapalı
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                
+                                                <!-- İstatistikler -->
+                                                <div class="grid grid-cols-3 gap-3 mt-4">
+                                                    <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-100">
+                                                        <div class="text-lg font-bold text-blue-600"><?= isset($community_details[$community]['members']) ? $community_details[$community]['members'] : '0' ?></div>
+                                                        <div class="text-xs text-blue-600 mt-0.5">Üye</div>
+                                                    </div>
+                                                    <div class="bg-purple-50 rounded-lg p-2 text-center border border-purple-100">
+                                                        <div class="text-lg font-bold text-purple-600"><?= isset($community_details[$community]['events']) ? $community_details[$community]['events'] : '0' ?></div>
+                                                        <div class="text-xs text-purple-600 mt-0.5">Etkinlik</div>
+                                                    </div>
+                                                    <div class="bg-red-50 rounded-lg p-2 text-center border border-red-100">
+                                                        <div class="text-lg font-bold text-red-600"><?= isset($community_details[$community]['banned']) ? $community_details[$community]['banned'] : '0' ?></div>
+                                                        <div class="text-xs text-red-600 mt-0.5">Banlı</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Plan Badge -->
+                                                <?php if ($subscription): 
+                                                    $tierLabels = [
+                                                        'standard' => 'Standart',
+                                                        'professional' => 'Profesyonel',
+                                                        'business' => 'Business'
+                                                    ];
+                                                    $tierColors = [
+                                                        'standard' => 'bg-gray-100 text-gray-700 border-gray-300',
+                                                        'professional' => 'bg-blue-100 text-blue-700 border-blue-300',
+                                                        'business' => 'bg-purple-100 text-purple-700 border-purple-300'
+                                                    ];
+                                                    $tierLabel = $tierLabels[$tier] ?? 'Standart';
+                                                    $tierColor = $tierColors[$tier] ?? $tierColors['standard'];
+                                                    $endDate = $subscription['end_date'] ?? null;
+                                                    $daysRemaining = $subscription['days_remaining'] ?? null;
+                                                ?>
+                                                <div class="mt-3 flex items-center justify-between px-3 py-2 <?= $tierColor ?> border rounded-lg">
+                                                    <div class="flex items-center gap-2">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 8h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                                        </svg>
+                                                        <span class="text-xs font-semibold"><?= htmlspecialchars($tierLabel) ?></span>
+                                                    </div>
+                                                    <?php if ($endDate && $daysRemaining !== null): ?>
+                                                        <span class="text-xs <?= $daysRemaining > 7 ? 'text-gray-600' : 'text-red-600 font-semibold' ?>">
+                                                            <?= $daysRemaining > 0 ? $daysRemaining . ' gün' : 'Süresi doldu' ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
+                                            
+                                            <!-- Card Body - Başkan ve Yönetim Kurulu -->
+                                            <div class="p-5 space-y-3">
                                             <div class="flex items-center justify-between">
                                                 <div class="flex items-center">
                                                     <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
@@ -3665,196 +3790,91 @@ foreach ($community_details as $details) {
                                                         </div>
                                                         
                                                         
-                                                        <!-- Topluluk Başkanı Bilgileri -->
-                                                        <?php if (isset($community_details[$community]['president']) && !empty($community_details[$community]['president']['name'])): ?>
-                                                        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                                            <div class="flex items-center justify-between mb-2">
-                                                                <h4 class="text-sm font-semibold text-blue-700 flex items-center">
-                                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                                                                    </svg>
-                                                                    Topluluk Başkanı
-                                                                </h4>
-                                                                <span class="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">Başkan</span>
-                                                            </div>
-                                                            <div class="space-y-2 text-xs text-blue-700">
-                                                                <div class="flex items-center">
-                                                                    <svg class="w-3 h-3 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                                                    </svg>
-                                                                    <span class="font-semibold"><?= isset($community_details[$community]['president']['name']) ? htmlspecialchars($community_details[$community]['president']['name']) : 'Bilgi Yok' ?></span>
-                                                                </div>
-                                                                
-                                                                <?php if (isset($community_details[$community]['president']) && !empty($community_details[$community]['president']['student_id'])): ?>
-                                                                <div class="flex items-center">
-                                                                    <svg class="w-3 h-3 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                                    </svg>
-                                                                    <span>Öğrenci No: <?= isset($community_details[$community]['president']['student_id']) ? htmlspecialchars($community_details[$community]['president']['student_id']) : 'Bilgi Yok' ?></span>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                                
-                                                                <?php if (isset($community_details[$community]['president']) && !empty($community_details[$community]['president']['department'])): ?>
-                                                                <div class="flex items-center">
-                                                                    <svg class="w-3 h-3 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                                                    </svg>
-                                                                    <span><?= isset($community_details[$community]['president']['department']) ? htmlspecialchars($community_details[$community]['president']['department']) : 'Bilgi Yok' ?></span>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                                
-                                                                <?php if (isset($community_details[$community]['president']) && !empty($community_details[$community]['president']['email'])): ?>
-                                                                <div class="flex items-center">
-                                                                    <svg class="w-3 h-3 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                                                    </svg>
-                                                                    <a href="mailto:<?= isset($community_details[$community]['president']['email']) ? htmlspecialchars($community_details[$community]['president']['email']) : '#' ?>" class="text-blue-600 hover:text-blue-800 font-medium">
-                                                                        <?= isset($community_details[$community]['president']['email']) ? htmlspecialchars($community_details[$community]['president']['email']) : 'Bilgi Yok' ?>
-                                                                    </a>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                                
-                                                                <?php if (isset($community_details[$community]['president']) && !empty($community_details[$community]['president']['phone'])): ?>
-                                                                <div class="flex items-center">
-                                                                    <svg class="w-3 h-3 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                                                                    </svg>
-                                                                    <a href="tel:<?= isset($community_details[$community]['president']['phone']) ? htmlspecialchars($community_details[$community]['president']['phone']) : '#' ?>" class="text-blue-600 hover:text-blue-800 font-medium">
-                                                                        <?= isset($community_details[$community]['president']['phone']) ? htmlspecialchars($community_details[$community]['president']['phone']) : 'Bilgi Yok' ?>
-                                                                    </a>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </div>
-                                                        <?php endif; ?>
-                                                        
-                                                        <!-- Yönetim Kurulu Üyeleri -->
-                                                        <?php if (isset($community_details[$community]['board_members']) && 
-                                                                  (!empty($community_details[$community]['board_members']['vice_president']['name']) || 
-                                                                   !empty($community_details[$community]['board_members']['secretary']['name']) || 
-                                                                   !empty($community_details[$community]['board_members']['treasurer']['name']) || 
-                                                                   !empty($community_details[$community]['board_members']['board_member']['name']))): ?>
-                                                        <div class="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                                            <div class="flex items-center justify-between mb-3">
-                                                                <h4 class="text-sm font-semibold text-green-700 flex items-center">
-                                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                                                    </svg>
-                                                                    Yönetim Kurulu
-                                                                </h4>
-                                                                <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">Kurul</span>
-                                                            </div>
-                                                            
-                                                            <div class="space-y-3 text-xs text-green-700">
-                                                                <?php if (isset($community_details[$community]['board_members']['vice_president']) && !empty($community_details[$community]['board_members']['vice_president']['name'])): ?>
-                                                                <div class="flex items-center justify-between p-2 bg-white rounded border border-green-100">
-                                                                    <div class="flex items-center">
-                                                                        <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                                                                        <span class="font-medium">Başkan Yardımcısı:</span>
-                                                                        <span class="ml-2"><?= htmlspecialchars($community_details[$community]['board_members']['vice_president']['name'] ?? 'Bilgi Yok') ?></span>
-                                                                    </div>
-                                                                    <?php if (isset($community_details[$community]['board_members']['vice_president']) && !empty($community_details[$community]['board_members']['vice_president']['email'])): ?>
-                                                                    <a href="mailto:<?= htmlspecialchars($community_details[$community]['board_members']['vice_president']['email']) ?>" class="text-blue-600 hover:text-blue-800 text-xs">
-                                                                        <?= htmlspecialchars($community_details[$community]['board_members']['vice_president']['email']) ?>
-                                                                    </a>
-                                                                    <?php endif; ?>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                                
-                                                                <?php if (isset($community_details[$community]['board_members']['secretary']) && !empty($community_details[$community]['board_members']['secretary']['name'])): ?>
-                                                                <div class="flex items-center justify-between p-2 bg-white rounded border border-green-100">
-                                                                    <div class="flex items-center">
-                                                                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                                                        <span class="font-medium">Sekreter:</span>
-                                                                        <span class="ml-2"><?= htmlspecialchars($community_details[$community]['board_members']['secretary']['name'] ?? 'Bilgi Yok') ?></span>
-                                                                    </div>
-                                                                    <?php if (isset($community_details[$community]['board_members']['secretary']) && !empty($community_details[$community]['board_members']['secretary']['email'])): ?>
-                                                                    <a href="mailto:<?= htmlspecialchars($community_details[$community]['board_members']['secretary']['email']) ?>" class="text-blue-600 hover:text-blue-800 text-xs">
-                                                                        <?= htmlspecialchars($community_details[$community]['board_members']['secretary']['email']) ?>
-                                                                    </a>
-                                                                    <?php endif; ?>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                                
-                                                                <?php if (isset($community_details[$community]['board_members']['treasurer']) && !empty($community_details[$community]['board_members']['treasurer']['name'])): ?>
-                                                                <div class="flex items-center justify-between p-2 bg-white rounded border border-green-100">
-                                                                    <div class="flex items-center">
-                                                                        <div class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-                                                                        <span class="font-medium">Muhasip:</span>
-                                                                        <span class="ml-2"><?= htmlspecialchars($community_details[$community]['board_members']['treasurer']['name'] ?? 'Bilgi Yok') ?></span>
-                                                                    </div>
-                                                                    <?php if (isset($community_details[$community]['board_members']['treasurer']) && !empty($community_details[$community]['board_members']['treasurer']['email'])): ?>
-                                                                    <a href="mailto:<?= htmlspecialchars($community_details[$community]['board_members']['treasurer']['email']) ?>" class="text-blue-600 hover:text-blue-800 text-xs">
-                                                                        <?= htmlspecialchars($community_details[$community]['board_members']['treasurer']['email']) ?>
-                                                                    </a>
-                                                                    <?php endif; ?>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                                
-                                                                <?php if (isset($community_details[$community]['board_members']['board_member']) && !empty($community_details[$community]['board_members']['board_member']['name'])): ?>
-                                                                <div class="flex items-center justify-between p-2 bg-white rounded border border-green-100">
-                                                                    <div class="flex items-center">
-                                                                        <div class="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-                                                                        <span class="font-medium">Üye:</span>
-                                                                        <span class="ml-2"><?= htmlspecialchars($community_details[$community]['board_members']['board_member']['name'] ?? 'Bilgi Yok') ?></span>
-                                                                    </div>
-                                                                    <?php if (isset($community_details[$community]['board_members']['board_member']) && !empty($community_details[$community]['board_members']['board_member']['email'])): ?>
-                                                                    <a href="mailto:<?= htmlspecialchars($community_details[$community]['board_members']['board_member']['email']) ?>" class="text-blue-600 hover:text-blue-800 text-xs">
-                                                                        <?= htmlspecialchars($community_details[$community]['board_members']['board_member']['email']) ?>
-                                                                    </a>
-                                                                    <?php endif; ?>
-                                                                </div>
-                                                                <?php endif; ?>
-                                                            </div>
+                                                <!-- Topluluk Başkanı Bilgileri -->
+                                                <?php if (isset($community_details[$community]['president']) && !empty($community_details[$community]['president']['name'])): ?>
+                                                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                                                    <div class="flex items-center justify-between mb-2">
+                                                        <h4 class="text-xs font-bold text-blue-800 flex items-center uppercase tracking-wide">
+                                                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                                            </svg>
+                                                            Başkan
+                                                        </h4>
+                                                    </div>
+                                                    <div class="space-y-1.5 text-xs">
+                                                        <div class="font-semibold text-blue-900"><?= isset($community_details[$community]['president']['name']) ? htmlspecialchars($community_details[$community]['president']['name']) : 'Bilgi Yok' ?></div>
+                                                        <?php if (isset($community_details[$community]['president']['email'])): ?>
+                                                        <div class="text-blue-700 truncate">
+                                                            <a href="mailto:<?= htmlspecialchars($community_details[$community]['president']['email']) ?>" class="hover:underline"><?= htmlspecialchars($community_details[$community]['president']['email']) ?></a>
                                                         </div>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
-                                                <!-- Ana Aksiyon Butonları -->
-                                                <div class="flex flex-wrap gap-2">
-                                                    <a href="../communities/<?= urlencode($community) ?>/loading.php?community=<?= urlencode($community) ?>&auto_access=true" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm flex items-center">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <?php endif; ?>
+                                                
+                                                <!-- Yönetim Kurulu Özet -->
+                                                <?php if (isset($community_details[$community]['board_members'])): 
+                                                    $board_count = 0;
+                                                    if (!empty($community_details[$community]['board_members']['vice_president']['name'])) $board_count++;
+                                                    if (!empty($community_details[$community]['board_members']['secretary']['name'])) $board_count++;
+                                                    if (!empty($community_details[$community]['board_members']['treasurer']['name'])) $board_count++;
+                                                    if (!empty($community_details[$community]['board_members']['board_member']['name'])) $board_count++;
+                                                ?>
+                                                <?php if ($board_count > 0): ?>
+                                                <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                                                    <div class="flex items-center justify-between">
+                                                        <h4 class="text-xs font-bold text-green-800 flex items-center uppercase tracking-wide">
+                                                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                            </svg>
+                                                            Yönetim Kurulu
+                                                        </h4>
+                                                        <span class="text-xs font-bold text-green-700 bg-green-200 px-2 py-0.5 rounded-full"><?= $board_count ?> Üye</span>
+                                                    </div>
+                                                </div>
+                                                <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
+                                            
+                                            <!-- Card Footer - Action Buttons -->
+                                            <div class="p-5 pt-0 border-t border-gray-100 mt-4">
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <a href="../communities/<?= urlencode($community) ?>/loading.php?community=<?= urlencode($community) ?>&auto_access=true" target="_blank" class="px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition duration-200 font-semibold text-xs flex items-center justify-center shadow-sm">
+                                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                                         </svg>
                                                         Erişim
                                                     </a>
                                                     
-                                                    <button onclick="openAssignPlanModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm flex items-center">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                        </svg>
-                                                        Plan Ata
-                                                    </button>
-                                                    
-                                                    <button onclick="openAssignSmsPackageModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 font-medium text-sm flex items-center">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                                        </svg>
-                                                        SMS Paketi Tahsis Et
-                                                    </button>
-                                                    
-                                                    <button onclick="openEditModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['community_code'] ?? ''), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['university'] ?? ''), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['admin']['username'] ?? ''), ENT_QUOTES) ?>)" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm flex items-center">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <button onclick="openEditModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['community_code'] ?? ''), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['university'] ?? ''), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['admin']['username'] ?? ''), ENT_QUOTES) ?>)" class="px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition duration-200 font-semibold text-xs flex items-center justify-center shadow-sm">
+                                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                         </svg>
                                                         Düzenle
                                                     </button>
-                                                    
-                                                    <button onclick="openCreatePresidentModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm flex items-center">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                </div>
+                                                <div class="grid grid-cols-3 gap-2 mt-2">
+                                                    <button onclick="openAssignPlanModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-2 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition duration-200 font-medium text-xs flex items-center justify-center">
+                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                         </svg>
-                                                        Başkan Oluştur
+                                                        Plan
                                                     </button>
                                                     
-                                                    <button onclick="deleteCommunity(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>)" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200 font-medium text-sm flex items-center">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <button onclick="openAssignSmsPackageModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-2 py-1.5 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition duration-200 font-medium text-xs flex items-center justify-center">
+                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                                        </svg>
+                                                        SMS
+                                                    </button>
+                                                    
+                                                    <button onclick="deleteCommunity(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>)" class="px-2 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition duration-200 font-medium text-xs flex items-center justify-center">
+                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                         </svg>
                                                         Sil
                                                     </button>
                                                 </div>
-                                                
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -5182,20 +5202,65 @@ let allCommunities = <?= json_encode($communities ?? []) ?>;
 let isLoadingCommunities = false;
 
 function filterCommunities() {
-    const searchTerm = document.getElementById('communitySearch')?.value.toLowerCase() || '';
+    const searchTerm = (document.getElementById('communitySearch')?.value || '').toLowerCase().trim();
+    const universityFilter = (document.getElementById('filterUniversity')?.value || '').toLowerCase().trim();
+    const statusFilter = document.getElementById('filterStatus')?.value || 'all';
+    const tierFilter = document.getElementById('filterTier')?.value || 'all';
+    
     const items = document.querySelectorAll('.community-item');
+    let visibleCount = 0;
     
     items.forEach(item => {
-        const name = item.getAttribute('data-name') || '';
-        const folder = item.getAttribute('data-folder') || '';
-        const university = item.getAttribute('data-university') || '';
+        const name = (item.getAttribute('data-name') || '').toLowerCase();
+        const folder = (item.getAttribute('data-folder') || '').toLowerCase();
+        const university = (item.getAttribute('data-university') || '').toLowerCase();
+        const status = item.getAttribute('data-status') || '';
+        const tier = item.getAttribute('data-tier') || 'none';
         
-        if (name.includes(searchTerm) || folder.includes(searchTerm) || university.includes(searchTerm)) {
+        // Arama filtresi
+        const matchesSearch = !searchTerm || 
+            name.includes(searchTerm) || 
+            folder.includes(searchTerm) || 
+            university.includes(searchTerm);
+        
+        // Üniversite filtresi
+        const matchesUniversity = !universityFilter || university.includes(universityFilter);
+        
+        // Durum filtresi
+        const matchesStatus = statusFilter === 'all' || 
+            (statusFilter === 'active' && status === 'active') ||
+            (statusFilter === 'inactive' && status !== 'active');
+        
+        // Plan filtresi
+        const matchesTier = tierFilter === 'all' || tier === tierFilter;
+        
+        if (matchesSearch && matchesUniversity && matchesStatus && matchesTier) {
             item.style.display = '';
+            visibleCount++;
         } else {
             item.style.display = 'none';
         }
     });
+    
+    // Filtrelenmiş sayıyı göster
+    const filteredCountEl = document.getElementById('filteredCount');
+    if (filteredCountEl) {
+        if (searchTerm || universityFilter || statusFilter !== 'all' || tierFilter !== 'all') {
+            filteredCountEl.textContent = `${visibleCount} topluluk gösteriliyor`;
+            filteredCountEl.classList.remove('hidden');
+        } else {
+            filteredCountEl.textContent = '';
+            filteredCountEl.classList.add('hidden');
+        }
+    }
+}
+
+function clearFilters() {
+    document.getElementById('communitySearch').value = '';
+    document.getElementById('filterUniversity').value = '';
+    document.getElementById('filterStatus').value = 'all';
+    document.getElementById('filterTier').value = 'all';
+    filterCommunities();
 }
 
 function loadMoreCommunities() {

@@ -4137,7 +4137,11 @@ function handle_post_request() {
                     if (move_uploaded_file($_FILES['csv_file']['tmp_name'], $upload_file)) {
                         $result = import_members_csv($upload_file);
                         if ($result['success']) {
-                            $_SESSION['message'] = $result['message'];
+                            $message = $result['message'];
+                            if (isset($result['updated']) && $result['updated'] > 0) {
+                                $message .= " " . $result['updated'] . " üye güncellendi.";
+                            }
+                            $_SESSION['message'] = $message;
                             if (!empty($result['errors'])) {
                                 $_SESSION['import_errors'] = $result['errors'];
                             }
@@ -21914,9 +21918,14 @@ function drawFinancialCharts() {
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CSV Dosyası Seç</label>
                 <input type="file" name="csv_file" accept=".csv" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                <div class="mt-2 flex items-center justify-between">
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Format: Ad Soyad;E-posta;Öğrenci No;Telefon;Kayıt Tarihi (noktalı virgül ile ayrılmış)</p>
-                    <a href="?action=download_sample_members_csv" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1">
+                <div class="mt-2 space-y-2">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        <strong>Format:</strong> Ad Soyad;E-posta;Öğrenci No;Telefon;Kayıt Tarihi;Bölüm;Sınıf;Doğum Tarihi;Adres;Notlar
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        <strong>Not:</strong> Noktalı virgül (;) ile ayrılmış CSV formatı. Ad Soyad ve E-posta zorunludur. Mevcut üyeler e-posta adresine göre güncellenir.
+                    </p>
+                    <a href="?action=download_sample_members_csv" class="inline-flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         Örnek Dosya İndir
                     </a>
@@ -23363,49 +23372,102 @@ window.createEventCard = function(event) {
     const eventDate = new Date(event.date);
     const formattedDate = eventDate.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     
+    // Event image
+    const eventImage = event.image_path || '';
+    const imageHtml = eventImage ? 
+        `<img src="${escapeHtml(eventImage)}" alt="${escapeHtml(event.title || '')}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+        '';
+    
+    // Gradient colors
+    const gradientColors = {
+        'Genel': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'Seminer': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'Workshop': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'Kongre': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        'Sosyal': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'Spor': 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+        'Kültür': 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+        'Eğitim': 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+        'Teknoloji': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    };
+    const gradient = gradientColors[category] || gradientColors['Genel'];
+    
+    const isPast = new Date(event.date) < new Date();
+    const formattedDate = new Date(event.date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    
     return `
-        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
-            <div class="p-5">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                            ${featured ? '<svg class="w-4 h-4 inline text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>' : ''}
-                            ${escapeHtml(event.title || 'Etkinlik')}
-                        </h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(category)}</p>
-                    </div>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || statusColors['planlanıyor']}">
-                        ${escapeHtml(status)}
-                    </span>
-                </div>
-                
-                <div class="space-y-2 mb-4">
-                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        <div class="event-card bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col"
+             data-title="${escapeHtml((event.title || '').toLowerCase())}"
+             data-status="${status}"
+             data-category="${category}"
+             data-priority="${priority}"
+             data-date="${event.date}">
+            <!-- Event Image -->
+            <div class="event-image relative h-48 overflow-hidden bg-white dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                ${imageHtml}
+                <div class="absolute inset-0 flex items-center justify-center" style="${eventImage ? 'display: none;' : ''}">
+                    <div class="flex flex-col items-center justify-center">
+                        <svg class="w-16 h-16 text-indigo-500 dark:text-indigo-400 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
-                        ${formattedDate}${event.time ? ' @ ' + escapeHtml(event.time) : ''}
+                        <span class="mt-2 text-xs text-gray-400 dark:text-gray-500 font-medium">Etkinlik Görseli</span>
                     </div>
+                </div>
+                ${featured ? `
+                <div class="absolute top-3 right-3">
+                    <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                </div>
+                ` : ''}
+            </div>
+            
+            <!-- Event Content -->
+            <div class="p-5 flex flex-col flex-grow">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 line-clamp-2">
+                    ${escapeHtml(event.title || 'Etkinlik')}
+                </h3>
+                
+                <div class="space-y-2 mb-4 flex-grow">
                     ${event.location ? `
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        ${escapeHtml(event.location)}
+                        <i class="fas fa-map-marker-alt text-indigo-500 dark:text-indigo-400 w-4 mr-2"></i>
+                        <span>${escapeHtml(event.location)}</span>
                     </div>
                     ` : ''}
+                    
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <svg class="w-4 h-4 mr-2 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>${formattedDate}${event.time ? ' ' + escapeHtml(event.time) : ''}</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || statusColors['planlanıyor']}">
+                            ${escapeHtml(status)}
+                        </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                            ${escapeHtml(category)}
+                        </span>
+                    </div>
                 </div>
                 
-                <div class="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <a href="?view=event_detail&event_id=${event.id}" 
-                       class="flex-1 px-3 py-1.5 bg-indigo-400 text-white rounded-md text-xs font-semibold hover:bg-indigo-500 transition text-center">
-                        Detay
-                    </a>
-                    <button onclick="openEditModal('event', ${event.id}, '${escapeJs(event.title || '')}', '${escapeJs(event.date || '')}', '${escapeJs(event.time || '')}', '${escapeJs(event.location || '')}', '${escapeJs((event.description || '').replace(/\r|\n/g, ' '))}')" 
-                            class="flex-1 px-3 py-1.5 bg-indigo-400 text-white rounded-md text-xs font-semibold hover:bg-indigo-500 transition">
-                        Düzenle
-                    </button>
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <i class="fas fa-users text-indigo-500 dark:text-indigo-400 mr-1.5"></i>
+                        <span>0 katılımcı</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="?view=event_detail&event_id=${event.id}" 
+                           class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-semibold transition">
+                            Detay
+                        </a>
+                        <button onclick="openEditModal('event', ${event.id}, '${escapeJs(event.title || '')}', '${escapeJs(event.date || '')}', '${escapeJs(event.time || '')}', '${escapeJs(event.location || '')}', '${escapeJs((event.description || '').replace(/\r|\n/g, ' '))}')" 
+                                class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-semibold transition">
+                            Düzenle
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
