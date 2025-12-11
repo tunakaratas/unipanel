@@ -212,7 +212,10 @@ try {
     }
     
     // GET isteği - Profil bilgilerini getir
-    $stmt = $db->prepare("SELECT id, email, first_name, last_name, student_id, phone_number, university, department, created_at, last_login FROM system_users WHERE id = ? AND is_active = 1");
+    // phone_verified kolonu yoksa ekle
+    @$db->exec("ALTER TABLE system_users ADD COLUMN phone_verified INTEGER DEFAULT 0");
+    
+    $stmt = $db->prepare("SELECT id, email, first_name, last_name, student_id, phone_number, phone_verified, university, department, created_at, last_login FROM system_users WHERE id = ? AND is_active = 1");
     $stmt->bindValue(1, $user_id, SQLITE3_INTEGER);
     $result = $stmt->execute();
     $user = $result->fetchArray(SQLITE3_ASSOC);
@@ -232,6 +235,7 @@ try {
         'full_name' => $user['first_name'] . ' ' . $user['last_name'],
         'student_id' => $user['student_id'] ?? null,
         'phone_number' => $user['phone_number'] ?? null,
+        'phone_verified' => isset($user['phone_verified']) ? (bool)$user['phone_verified'] : false,
         'university' => $user['university'] ?? null,
         'department' => $user['department'] ?? null,
         'created_at' => $user['created_at'] ?? null,
