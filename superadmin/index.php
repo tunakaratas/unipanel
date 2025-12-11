@@ -1243,6 +1243,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($action ?? '') === 'create' || ($
                                         error_log("Topluluk kodu kaydedilemedi: " . $e->getMessage());
                                     }
                                     
+                                    // SMTP ayarlarını config/credentials.php'den çek ve kaydet
+                                    try {
+                                        $credentials_path = __DIR__ . '/../config/credentials.php';
+                                        if (file_exists($credentials_path)) {
+                                            $credentials = require $credentials_path;
+                                            if (isset($credentials['smtp']) && is_array($credentials['smtp'])) {
+                                                $smtp_config = $credentials['smtp'];
+                                                
+                                                // SMTP ayarlarını veritabanına kaydet
+                                                $smtp_settings = [
+                                                    'smtp_username' => $smtp_config['username'] ?? '',
+                                                    'smtp_password' => $smtp_config['password'] ?? '',
+                                                    'smtp_host' => $smtp_config['host'] ?? 'ms7.guzel.net.tr',
+                                                    'smtp_port' => (string)($smtp_config['port'] ?? 587),
+                                                    'smtp_secure' => $smtp_config['encryption'] ?? 'tls',
+                                                    'smtp_from_email' => $smtp_config['from_email'] ?? ($smtp_config['username'] ?? 'admin@foursoftware.com.tr'),
+                                                    'smtp_from_name' => $smtp_config['from_name'] ?? 'UniFour'
+                                                ];
+                                                
+                                                foreach ($smtp_settings as $key => $value) {
+                                                    if (!empty($value)) {
+                                                        try {
+                                                            $stmt = $db->prepare("INSERT OR REPLACE INTO settings (club_id, setting_key, setting_value) VALUES (?, ?, ?)");
+                                                            if ($stmt) {
+                                                                $stmt->bindValue(1, 1, SQLITE3_INTEGER);
+                                                                $stmt->bindValue(2, $key, SQLITE3_TEXT);
+                                                                $stmt->bindValue(3, $value, SQLITE3_TEXT);
+                                                                $stmt->execute();
+                                                            }
+                                                        } catch (Exception $e) {
+                                                            error_log("SMTP ayarı kaydedilemedi ($key): " . $e->getMessage());
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                error_log("SMTP ayarları başarıyla yüklendi: " . $community_name);
+                                            } else {
+                                                error_log("SMTP ayarları config/credentials.php'de bulunamadı");
+                                            }
+                                        } else {
+                                            error_log("config/credentials.php dosyası bulunamadı");
+                                        }
+                                    } catch (Exception $e) {
+                                        error_log("SMTP ayarları yüklenirken hata: " . $e->getMessage());
+                                    }
+                                    
                                     $db->close();
                                     
                                     // Public index cache'ini temizle (yeni topluluk eklendi)
