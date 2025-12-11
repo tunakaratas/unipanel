@@ -1527,9 +1527,13 @@ function handle_create_survey($db, $post) {
 
 /**
  * Yeni etkinlik oluşturulduğunda üyelere push notification gönder
+ * Sadece o topluluğun üyelerine bildirim gönderir
  */
 function sendEventNotificationToMembers($db, $event_id, $event_title, $event_date, $event_time, $event_location) {
     try {
+        // Push notification servisini yükle
+        require_once __DIR__ . '/../../lib/notifications/PushNotificationService.php';
+        
         // Superadmin veritabanından device token'ları al
         $superadminDbPath = __DIR__ . '/../../unipanel.sqlite';
         if (!file_exists($superadminDbPath)) {
@@ -1543,9 +1547,82 @@ function sendEventNotificationToMembers($db, $event_id, $event_title, $event_dat
         $db_path = $db->filename;
         $community_id = basename(dirname($db_path));
         
-        // Bu topluluğa kayıtlı device token'ları al
-        $tokens_query = $superadminDb->prepare("SELECT device_token, platform, user_id FROM device_tokens WHERE community_id = ? OR community_id IS NULL OR community_id = ''");
-        $tokens_query->bindValue(1, $community_id, SQLITE3_TEXT);
+        // Bu topluluğun üyelerini al (members tablosundan)
+        $members_query = $db->prepare("SELECT DISTINCT email, user_id FROM members WHERE club_id = 1 AND email IS NOT NULL AND email != ''");
+        $members_result = $members_query->execute();
+        
+        $member_emails = [];
+        $member_user_ids = [];
+        while ($row = $members_result->fetchArray(SQLITE3_ASSOC)) {
+            if (!empty($row['email'])) {
+                $member_emails[] = strtolower(trim($row['email']));
+            }
+            if (!empty($row['user_id'])) {
+                $member_user_ids[] = (string)$row['user_id'];
+            }
+        }
+        
+        if (empty($member_emails) && empty($member_user_ids)) {
+            $superadminDb->close();
+            return; // Üye yoksa çık
+        }
+        
+        // Bu topluluğun üyelerine ait device token'ları al
+        // SQL injection koruması için prepared statement kullan
+        $placeholders_email = [];
+        $placeholders_user_id = [];
+        $params = [];
+        $param_index = 1;
+        
+        // Email'ler için placeholder'lar
+        if (!empty($member_emails)) {
+            foreach ($member_emails as $email) {
+                $placeholders_email[] = '?';
+                $params[] = $email;
+                $param_index++;
+            }
+        }
+        
+        // User ID'ler için placeholder'lar
+        if (!empty($member_user_ids)) {
+            foreach ($member_user_ids as $user_id) {
+                $placeholders_user_id[] = '?';
+                $params[] = $user_id;
+                $param_index++;
+            }
+        }
+        
+        // Community ID için placeholder
+        $params[] = $community_id;
+        
+        // SQL sorgusunu oluştur
+        $where_conditions = [];
+        $bind_index = 1;
+        
+        if (!empty($placeholders_email)) {
+            $where_conditions[] = "user_email IN (" . implode(",", $placeholders_email) . ")";
+        }
+        if (!empty($placeholders_user_id)) {
+            $where_conditions[] = "user_id IN (" . implode(",", $placeholders_user_id) . ")";
+        }
+        $where_conditions[] = "community_id = ?";
+        
+        $sql = "
+            SELECT DISTINCT device_token, platform, user_id, user_email 
+            FROM device_tokens 
+            WHERE (" . implode(" OR ", $where_conditions) . ")
+            AND device_token IS NOT NULL 
+            AND device_token != ''
+        ";
+        
+        $tokens_query = $superadminDb->prepare($sql);
+        
+        // Parametreleri bağla
+        foreach ($params as $param) {
+            $tokens_query->bindValue($bind_index, $param, SQLITE3_TEXT);
+            $bind_index++;
+        }
+        
         $tokens_result = $tokens_query->execute();
         
         $device_tokens = [];
@@ -1558,58 +1635,65 @@ function sendEventNotificationToMembers($db, $event_id, $event_title, $event_dat
             return; // Token yoksa çık
         }
         
-        // Notification gönder (Firebase Cloud Messaging veya APNs)
-        // Bu kısım Firebase/APNs entegrasyonu gerektirir
-        // Şimdilik sadece log kaydı yapıyoruz, gerçek entegrasyon için ayrı bir servis gerekli
-        
+        // Bildirim verilerini hazırla
         $notification_data = [
             'type' => 'event',
-            'related_id' => (string)$event_id,
+            'event_id' => (string)$event_id,
             'community_id' => $community_id,
             'event_title' => $event_title,
             'event_date' => $event_date,
-            'event_time' => $event_time,
-            'event_location' => $event_location ?? ''
+            'event_time' => $event_time ?? '',
+            'event_location' => $event_location ?? '',
+            'deep_link' => 'unifour://community/' . urlencode($community_id) . '/event/' . $event_id
         ];
         
-        // Notification queue'ya ekle (async işlem için)
-        $queue_db = new SQLite3($superadminDbPath);
-        $queue_db->exec('PRAGMA journal_mode = WAL');
-        $queue_db->exec("CREATE TABLE IF NOT EXISTS notification_queue (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            device_token TEXT NOT NULL,
-            platform TEXT NOT NULL,
-            notification_type TEXT NOT NULL,
-            title TEXT NOT NULL,
-            body TEXT NOT NULL,
-            data TEXT,
-            status TEXT DEFAULT 'pending',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            sent_at DATETIME
-        )");
-        
         $title = "Yeni Etkinlik: " . $event_title;
-        $body = $event_date . ($event_time ? " " . $event_time : "") . ($event_location ? " - " . $event_location : "");
-        
-        foreach ($device_tokens as $token_data) {
-            $insert_queue = $queue_db->prepare("INSERT INTO notification_queue (device_token, platform, notification_type, title, body, data) VALUES (?, ?, ?, ?, ?, ?)");
-            $insert_queue->bindValue(1, $token_data['device_token'], SQLITE3_TEXT);
-            $insert_queue->bindValue(2, $token_data['platform'], SQLITE3_TEXT);
-            $insert_queue->bindValue(3, 'event', SQLITE3_TEXT);
-            $insert_queue->bindValue(4, $title, SQLITE3_TEXT);
-            $insert_queue->bindValue(5, $body, SQLITE3_TEXT);
-            $insert_queue->bindValue(6, json_encode($notification_data, JSON_UNESCAPED_UNICODE), SQLITE3_TEXT);
-            $insert_queue->execute();
+        $body = $event_date;
+        if ($event_time) {
+            $body .= " " . $event_time;
+        }
+        if ($event_location) {
+            $body .= " - " . $event_location;
         }
         
-        $queue_db->close();
-        $superadminDb->close();
+        // Push notification servisini başlat
+        $pushService = new \UniPanel\Notifications\PushNotificationService();
         
-        // Background job ile notification gönderilecek (cron job veya queue worker)
-        // Şimdilik sadece queue'ya ekledik
+        // Her cihaza bildirim gönder
+        $successCount = 0;
+        $failCount = 0;
+        
+        foreach ($device_tokens as $token_data) {
+            try {
+                $result = $pushService->sendToDevice(
+                    $token_data['device_token'],
+                    $token_data['platform'] ?? 'android',
+                    $title,
+                    $body,
+                    $notification_data
+                );
+                
+                if ($result !== false) {
+                    $successCount++;
+                } else {
+                    $failCount++;
+                }
+            } catch (Exception $e) {
+                error_log("Bildirim gönderme hatası (token: " . substr($token_data['device_token'], 0, 20) . "...): " . $e->getMessage());
+                $failCount++;
+            }
+        }
+        
+        // Log kaydet
+        if ($successCount > 0 || $failCount > 0) {
+            error_log("Etkinlik bildirimi gönderildi - Topluluk: $community_id, Etkinlik: $event_title, Başarılı: $successCount, Başarısız: $failCount");
+        }
+        
+        $superadminDb->close();
         
     } catch (Exception $e) {
         tpl_error_log("Event notification gönderme hatası: " . $e->getMessage());
+        error_log("Event notification gönderme hatası (detay): " . $e->getTraceAsString());
     }
 }
 
