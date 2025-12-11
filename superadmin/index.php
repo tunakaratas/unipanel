@@ -60,8 +60,8 @@ if (!defined('SUPERADMIN_SESSION_LIFETIME')) {
 if (!defined('SUPERADMIN_IDLE_TIMEOUT')) {
     define('SUPERADMIN_IDLE_TIMEOUT', (int) min(SUPERADMIN_SESSION_LIFETIME, $superadminConfig['security']['idle_timeout'] ?? SUPERADMIN_SESSION_LIFETIME));
 }
-const SUPERADMIN_FILE_PERMS = 0640;
-const SUPERADMIN_DIR_PERMS = 0750;
+const SUPERADMIN_FILE_PERMS = 0644; // Web sunucusu okuyabilmeli
+const SUPERADMIN_DIR_PERMS = 0755; // Web sunucusu okuyabilmeli (755)
 const SUPERADMIN_PUBLIC_DIR_PERMS = 0755;
 $SUPERADMIN_ALLOWED_IPS = $superadminConfig['security']['allowed_ips'] ?? ['127.0.0.1', '::1'];
 
@@ -1249,9 +1249,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($action ?? '') === 'create' || ($
                                     try {
                                         require_once __DIR__ . '/../lib/core/Cache.php';
                                         $cache = \UniPanel\Core\Cache::getInstance(__DIR__ . '/../system/cache');
+                                        // Tüm cache versiyonlarını temizle
                                         $cache->delete('all_communities_list_v2');
+                                        $cache->delete('all_communities_list_v3');
+                                        // Pattern ile tüm ilgili cache'leri temizle
+                                        $cacheFiles = glob(__DIR__ . '/../system/cache/all_communities_list_*.cache');
+                                        foreach ($cacheFiles as $cacheFile) {
+                                            @unlink($cacheFile);
+                                        }
                                     } catch (Exception $e) {
                                         // Cache temizleme hatası kritik değil
+                                        error_log("Cache temizleme hatası: " . $e->getMessage());
                                     }
                                     
                                     $success = "Topluluk başarıyla oluşturuldu: " . $community_name . " | Topluluk Kodu: <strong>" . $community_code . "</strong>";
