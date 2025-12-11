@@ -144,7 +144,9 @@ function get_all_communities($useCache = true) {
             }
             
             // Base URL
-            $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'foursoftware.com.tr');
+            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $baseUrl = $protocol . '://' . $host;
             
             // QR kod deep link
             $qr_deep_link = 'unifour://community/' . urlencode($dir);
@@ -311,6 +313,7 @@ function sendResponse($success, $data = null, $message = null, $error = null, $p
     exit;
 }
 
+// Error handling - tüm hataları yakala
 try {
     $communities_dir = __DIR__ . '/../communities';
     
@@ -481,7 +484,9 @@ try {
             }
             
             // Base URL
-            $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'foursoftware.com.tr');
+            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $baseUrl = $protocol . '://' . $host;
             
             // QR kod deep link
             $qr_deep_link = 'unifour://community/' . urlencode($community['id']);
@@ -600,7 +605,9 @@ try {
             ConnectionPool::releaseConnection($db_path, $poolId, true);
             
             // Base URL
-            $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'foursoftware.com.tr');
+            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $baseUrl = $protocol . '://' . $host;
             
             // QR kod deep link
             $qr_deep_link = 'unifour://community/' . urlencode($community_id);
@@ -770,8 +777,10 @@ try {
             $board_count = 0;
         }
         
-        // Base URL
-        $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+            // Base URL
+            $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'foursoftware.com.tr');
+            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $baseUrl = $protocol . '://' . $host;
         
         // QR kod deep link
         $qr_deep_link = 'unifour://community/' . urlencode($community['id']);
@@ -814,7 +823,19 @@ try {
     ]);
     
 } catch (Exception $e) {
-    $response = sendSecureErrorResponse('İstek işlenirken bir hata oluştu', $e);
-    sendResponse($response['success'], $response['data'], $response['message'], $response['error']);
+    // Hata loglama
+    error_log("Communities API Error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    
+    // Güvenli hata yanıtı
+    http_response_code(500);
+    sendResponse(false, null, null, 'Sunucu hatası: ' . $e->getMessage());
+} catch (Error $e) {
+    // PHP 7+ Error sınıfı için
+    error_log("Communities API Fatal Error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    
+    http_response_code(500);
+    sendResponse(false, null, null, 'Sunucu hatası: ' . $e->getMessage());
 }
 
