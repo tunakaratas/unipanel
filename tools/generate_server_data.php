@@ -1,7 +1,7 @@
 <?php
 /**
  * Sunucuya Veri Yükleme Script'i
- * Tüm topluluklara üye, etkinlik ve kampanya verileri ekler
+ * Tüm topluluklara üye, etkinlik, kampanya ve market ürünü verileri ekler
  * Her birinden 30 adet ekler
  */
 
@@ -55,11 +55,35 @@ $campaignTitles = [
     'Sadakat Programı'
 ];
 
+$productNames = [
+    'Topluluk Tişörtü',
+    'Hoodie',
+    'Çanta',
+    'Not Defteri',
+    'Kalem Seti',
+    'Rozet',
+    'Anahtarlık',
+    'Bardak',
+    'Şapka',
+    'Çorap',
+    'Mouse Pad',
+    'Sticker Seti',
+    'Poster',
+    'Kupa',
+    'Powerbank',
+    'USB Bellek',
+    'Bluetooth Hoparlör',
+    'Kulaklık',
+    'Çanta Askısı',
+    'Bileklik'
+];
+
 // İstatistikler
 $processedCommunities = 0;
 $addedMembers = 0;
 $addedEvents = 0;
 $addedCampaigns = 0;
+$addedProducts = 0;
 $errors = [];
 
 // Toplulukları bul
@@ -161,6 +185,24 @@ foreach ($communities as $communityPath) {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
         
+        $db->exec("CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            club_id INTEGER,
+            name TEXT NOT NULL,
+            description TEXT,
+            price REAL DEFAULT 0,
+            stock INTEGER DEFAULT 0,
+            category TEXT DEFAULT 'Genel',
+            image_path TEXT,
+            status TEXT DEFAULT 'active',
+            commission_rate REAL DEFAULT 8.0,
+            iyzico_commission REAL DEFAULT 0,
+            platform_commission REAL DEFAULT 0,
+            total_price REAL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )");
+        
         // Üyeler ekle (30 adet)
         $memberStmt = $db->prepare("INSERT INTO members (club_id, full_name, email, student_id, phone_number, registration_date) VALUES (?, ?, ?, ?, ?, ?)");
         for ($i = 0; $i < 30; $i++) {
@@ -245,6 +287,38 @@ foreach ($communities as $communityPath) {
         }
         echo "  ✓ 30 kampanya eklendi\n";
         
+        // Market ürünleri ekle (30 adet)
+        $productStmt = $db->prepare("INSERT INTO products (club_id, name, description, price, stock, category, status, commission_rate, iyzico_commission, platform_commission, total_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        for ($i = 0; $i < 30; $i++) {
+            $name = $productNames[array_rand($productNames)] . ' ' . ($i + 1);
+            $description = 'Topluluğumuzun özel tasarımı ' . strtolower($name) . '. Yüksek kaliteli malzemeden üretilmiştir.';
+            $basePrice = rand(50, 500);
+            $price = $basePrice;
+            $stock = rand(10, 100);
+            $categories = ['Genel', 'Giyim', 'Aksesuar', 'Elektronik', 'Kırtasiye', 'Hediyelik'];
+            $category = $categories[array_rand($categories)];
+            $status = rand(0, 1) ? 'active' : 'inactive';
+            $commissionRate = 8.0;
+            $iyzicoCommission = $price * 0.02; // %2 iyzico komisyonu
+            $platformCommission = $price * ($commissionRate / 100);
+            $totalPrice = $price + $iyzicoCommission + $platformCommission;
+            
+            $productStmt->bindValue(1, $club_id, SQLITE3_INTEGER);
+            $productStmt->bindValue(2, $name, SQLITE3_TEXT);
+            $productStmt->bindValue(3, $description, SQLITE3_TEXT);
+            $productStmt->bindValue(4, $price, SQLITE3_FLOAT);
+            $productStmt->bindValue(5, $stock, SQLITE3_INTEGER);
+            $productStmt->bindValue(6, $category, SQLITE3_TEXT);
+            $productStmt->bindValue(7, $status, SQLITE3_TEXT);
+            $productStmt->bindValue(8, $commissionRate, SQLITE3_FLOAT);
+            $productStmt->bindValue(9, $iyzicoCommission, SQLITE3_FLOAT);
+            $productStmt->bindValue(10, $platformCommission, SQLITE3_FLOAT);
+            $productStmt->bindValue(11, $totalPrice, SQLITE3_FLOAT);
+            $productStmt->execute();
+            $addedProducts++;
+        }
+        echo "  ✓ 30 market ürünü eklendi\n";
+        
         $db->close();
         echo "✅ $communityName tamamlandı\n\n";
         
@@ -265,6 +339,7 @@ echo "İşlenen Topluluk: $processedCommunities\n";
 echo "Eklenen Üye: $addedMembers\n";
 echo "Eklenen Etkinlik: $addedEvents\n";
 echo "Eklenen Kampanya: $addedCampaigns\n";
+echo "Eklenen Market Ürünü: $addedProducts\n";
 
 if (!empty($errors)) {
     echo "\n❌ Hatalar:\n";
