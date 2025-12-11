@@ -4314,13 +4314,34 @@ function handle_post_request() {
                 }
                 exit; // JSON response'dan sonra çık
             case 'upload_event_media':
-                header('Content-Type: application/json');
+                // Tüm output buffer'ları temizle - JSON parse hatasını önlemek için
+                while (ob_get_level()) {
+                    ob_end_clean();
+                }
+                
+                // JSON header'ı hemen set et
+                header('Content-Type: application/json; charset=utf-8');
+                
                 try {
                     handle_upload_event_media($db, $_POST, $_FILES);
+                    // handle_upload_event_media içinde exit yapılıyor, buraya gelmemeli
                 } catch (Exception $e) {
-                    tpl_error_log("upload_event_media exception: " . $e->getMessage());
-                    echo json_encode(['success' => false, 'message' => 'Hata: ' . $e->getMessage()]);
+                    // Tüm output buffer'ları temizle
+                    while (ob_get_level()) {
+                        ob_end_clean();
+                    }
+                    
+                    // Log'a yaz (ama output üretme)
+                    @tpl_error_log("upload_event_media exception: " . $e->getMessage());
+                    
+                    // Sadece JSON döndür
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => 'Hata: ' . $e->getMessage()
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    exit;
                 }
+                // Buraya gelmemeli (handle_upload_event_media içinde exit yapılıyor)
                 break;
             case 'delete_event_image':
                 header('Content-Type: application/json');
@@ -9485,7 +9506,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                             </div>
                                         </div>
                                         
-                                        <?php if (!empty($event_detail['image_path']) || !empty($event_detail['video_path'])): ?>
+                                        <?php 
+                                        // Event images ve videos çek
+                                        $event_images = [];
+                                        $event_videos = [];
+                                        if (isset($event_detail['id'])) {
+                                            try {
+                                                $images_stmt = @$db->prepare("SELECT id, image_path FROM event_images WHERE event_id = ? AND club_id = ? ORDER BY uploaded_at DESC");
+                                                if ($images_stmt) {
+                                                    $images_stmt->bindValue(1, $event_detail['id'], SQLITE3_INTEGER);
+                                                    $images_stmt->bindValue(2, CLUB_ID, SQLITE3_INTEGER);
+                                                    $images_result = $images_stmt->execute();
+                                                    if ($images_result) {
+                                                        while ($img_row = $images_result->fetchArray(SQLITE3_ASSOC)) {
+                                                            $event_images[] = $img_row;
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                $videos_stmt = @$db->prepare("SELECT id, video_path FROM event_videos WHERE event_id = ? AND club_id = ? ORDER BY uploaded_at DESC");
+                                                if ($videos_stmt) {
+                                                    $videos_stmt->bindValue(1, $event_detail['id'], SQLITE3_INTEGER);
+                                                    $videos_stmt->bindValue(2, CLUB_ID, SQLITE3_INTEGER);
+                                                    $videos_result = $videos_stmt->execute();
+                                                    if ($videos_result) {
+                                                        while ($vid_row = $videos_result->fetchArray(SQLITE3_ASSOC)) {
+                                                            $event_videos[] = $vid_row;
+                                                        }
+                                                    }
+                                                }
+                                            } catch (Exception $e) {
+                                                // Tablolar yoksa boş kalır
+                                            }
+                                        }
+                                        
+                                        // Eski image_path varsa ilk sıraya ekle
+                                        if (!empty($event_detail['image_path']) && empty($event_images)) {
+                                            $event_images[] = ['id' => '0', 'image_path' => $event_detail['image_path']];
+                                        }
+                                        
+                                        if (!empty($event_images) || !empty($event_videos) || !empty($event_detail['video_path'])): ?>
                                         <div>
                                             <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                                                 <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -9494,22 +9554,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                                 Medya
                                             </h3>
                                             <div class="space-y-3">
-                                                <?php if (!empty($event_detail['image_path'])): ?>
-                                                <div>
-                                                    <img src="<?= htmlspecialchars($event_detail['image_path']) ?>" 
-                                                         alt="Etkinlik Görseli" 
-                                                         class="w-full h-64 object-cover rounded-lg shadow-sm border border-gray-200 dark:border-gray-600"
-                                                         onerror="this.style.display='none';">
+                                                <?php if (!empty($event_images)): ?>
+                                                <!-- Fotoğraf Carousel -->
+                                                <div class="relative">
+                                                    <div id="eventImageCarousel" class="overflow-hidden rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                                                        <div class="flex transition-transform duration-300 ease-in-out" style="transform: translateX(0%);">
+                                                            <?php foreach ($event_images as $index => $img): ?>
+                                                            <div class="min-w-full flex-shrink-0">
+                                                                <img src="<?= htmlspecialchars($img['image_path']) ?>" 
+                                                                     alt="Etkinlik Fotoğrafı <?= $index + 1 ?>" 
+                                                                     class="w-full h-64 sm:h-80 object-cover"
+                                                                     onerror="this.style.display='none';">
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <?php if (count($event_images) > 1): ?>
+                                                    <!-- Navigation Buttons -->
+                                                    <button onclick="carouselPrev('eventImageCarousel')" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all z-10">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                                        </svg>
+                                                    </button>
+                                                    <button onclick="carouselNext('eventImageCarousel')" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all z-10">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                        </svg>
+                                                    </button>
+                                                    
+                                                    <!-- Dots Indicator -->
+                                                    <div class="flex justify-center gap-2 mt-3">
+                                                        <?php foreach ($event_images as $index => $img): ?>
+                                                        <button onclick="carouselGoTo('eventImageCarousel', <?= $index ?>)" 
+                                                                class="carousel-dot w-2 h-2 rounded-full transition-all <?= $index === 0 ? 'bg-purple-600 w-6' : 'bg-gray-300 dark:bg-gray-600' ?>"
+                                                                aria-label="Fotoğraf <?= $index + 1 ?>"></button>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <?php endif; ?>
                                                 
-                                                <?php if (!empty($event_detail['video_path'])): ?>
-                                                <div>
-                                                    <video controls class="w-full h-64 object-cover rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
-                                                        <source src="<?= htmlspecialchars($event_detail['video_path']) ?>" type="video/mp4">
-                                                        <source src="<?= htmlspecialchars($event_detail['video_path']) ?>" type="video/quicktime">
-                                                        Tarayıcınız video oynatmayı desteklemiyor.
-                                                    </video>
+                                                <?php if (!empty($event_videos) || !empty($event_detail['video_path'])): ?>
+                                                <div class="space-y-3">
+                                                    <?php if (!empty($event_videos)): ?>
+                                                        <?php foreach ($event_videos as $video): ?>
+                                                        <div>
+                                                            <video controls class="w-full h-64 object-cover rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                                                                <source src="<?= htmlspecialchars($video['video_path']) ?>" type="video/mp4">
+                                                                <source src="<?= htmlspecialchars($video['video_path']) ?>" type="video/quicktime">
+                                                                Tarayıcınız video oynatmayı desteklemiyor.
+                                                            </video>
+                                                        </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                    
+                                                    <?php if (!empty($event_detail['video_path'])): ?>
+                                                    <div>
+                                                        <video controls class="w-full h-64 object-cover rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                                                            <source src="<?= htmlspecialchars($event_detail['video_path']) ?>" type="video/mp4">
+                                                            <source src="<?= htmlspecialchars($event_detail['video_path']) ?>" type="video/quicktime">
+                                                            Tarayıcınız video oynatmayı desteklemiyor.
+                                                        </video>
+                                                    </div>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <?php endif; ?>
                                             </div>
@@ -9729,9 +9837,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                 </div>
                                 
                                 <!-- Action Buttons -->
-                                <div class="flex flex-wrap items-center gap-3 pt-6 mt-8 border-t border-gray-200 dark:border-gray-700">
+                                <div class="flex flex-wrap items-center gap-3 pt-6 mt-8 border-t-2 border-gray-200 dark:border-gray-700">
                                     <button onclick="openEditModal('event', <?= (int)$event_detail['id'] ?>, <?= tpl_js_escaped($event_detail['title'] ?? '') ?>, <?= tpl_js_escaped($event_detail['date'] ?? '') ?>, <?= tpl_js_escaped($event_detail['time'] ?? '') ?>, <?= tpl_js_escaped($event_detail['location'] ?? '') ?>, <?= tpl_js_escaped(preg_replace('/\r|\n/', ' ', $event_detail['description'] ?? '')) ?>)" 
-                                            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-all duration-200">
+                                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
@@ -9739,7 +9847,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                     </button>
                                     
                                     <button onclick="openSurveyModal(<?= $event_detail['id'] ?>)" 
-                                            class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-all duration-200">
+                                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50 dark:bg-gray-800 dark:border-purple-600 dark:text-purple-400 dark:hover:bg-purple-900/20 rounded-xl text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                                         </svg>
@@ -9747,7 +9855,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                     </button>
                                     
                                     <button onclick="openMediaUploadModal(<?= $event_detail['id'] ?>)" 
-                                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-200">
+                                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50 dark:bg-gray-800 dark:border-purple-600 dark:text-purple-400 dark:hover:bg-purple-900/20 rounded-xl text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                         </svg>
@@ -17478,13 +17586,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                 <div class="space-y-4">
                     <div>
                         <label for="upload_images" class="block text-sm font-medium text-gray-700 mb-2">Fotoğraflar (Çoklu Seçim)</label>
-                        <input type="file" name="event_images[]" id="upload_images" accept="image/*" multiple class="w-full p-3 border border-gray-300 rounded-md shadow-sm input-focus">
-                        <p class="text-xs text-gray-500 mt-1">Birden fazla fotoğraf seçebilirsiniz (JPG, PNG, GIF - Max 5MB)</p>
+                        <input type="file" name="event_images[]" id="upload_images" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" multiple class="w-full p-3 border border-gray-300 rounded-md shadow-sm input-focus">
+                        <p class="text-xs text-gray-500 mt-1">Birden fazla fotoğraf seçebilirsiniz (JPG, PNG, GIF, WEBP - Max 10MB)</p>
                     </div>
                     <div>
                         <label for="upload_videos" class="block text-sm font-medium text-gray-700 mb-2">Videolar (Çoklu Seçim)</label>
-                        <input type="file" name="event_videos[]" id="upload_videos" accept="video/*" multiple class="w-full p-3 border border-gray-300 rounded-md shadow-sm input-focus">
-                        <p class="text-xs text-gray-500 mt-1">Birden fazla video seçebilirsiniz (MP4, AVI, MOV - Max 50MB)</p>
+                        <input type="file" name="event_videos[]" id="upload_videos" accept="video/mp4,video/avi,video/quicktime,video/x-msvideo,video/webm,video/x-matroska,video/x-flv,video/3gpp" multiple class="w-full p-3 border border-gray-300 rounded-md shadow-sm input-focus">
+                        <p class="text-xs text-gray-500 mt-1">Birden fazla video seçebilirsiniz (MP4, AVI, MOV, WEBM, MKV, FLV, 3GP - Max 100MB)</p>
                     </div>
                     <div class="flex justify-end space-x-3 pt-4 border-t">
                         <button type="button" onclick="closeModal('mediaUploadModal')" class="px-4 py-2 text-white bg-gray-600 rounded-md hover:bg-gray-700 transition duration-150">İptal</button>
@@ -21068,6 +21176,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
             
             const formData = new FormData(this);
             
+            // Dosya kontrolü
+            const imagesInput = document.getElementById('upload_images');
+            const videosInput = document.getElementById('upload_videos');
+            const hasImages = imagesInput && imagesInput.files && imagesInput.files.length > 0;
+            const hasVideos = videosInput && videosInput.files && videosInput.files.length > 0;
+            
+            if (!hasImages && !hasVideos) {
+                toastManager.show('Uyarı', 'Lütfen en az bir fotoğraf veya video seçin', 'warning', 3000);
+                return;
+            }
+            
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
             submitBtn.textContent = 'Yükleniyor...';
@@ -21082,22 +21201,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                     throw new Error('HTTP ' + response.status + ': ' + response.statusText);
                 }
                 return response.text().then(text => {
+                    // Trim whitespace ve BOM karakterlerini temizle
+                    text = text.trim();
+                    // BOM karakterini kaldır
+                    if (text.charCodeAt(0) === 0xFEFF) {
+                        text = text.slice(1);
+                    }
+                    
                     try {
-                        return JSON.parse(text);
+                        const data = JSON.parse(text);
+                        return data;
                     } catch (e) {
-                        console.error('JSON parse hatası:', text);
-                        throw new Error('JSON parse hatası: ' + e.message);
+                        console.error('JSON parse hatası:', e);
+                        console.error('Response text (ilk 500 karakter):', text.substring(0, 500));
+                        throw new Error('JSON parse hatası: ' + e.message + ' (Position: ' + (e.message.match(/position (\d+)/)?.[1] || 'unknown') + ')');
                     }
                 });
             })
             .then(data => {
                 if (data && data.success) {
-                    toastManager.show('Başarılı', data.message, 'success', 3000);
+                    let message = data.message || 'Dosyalar başarıyla yüklendi';
+                    if (data.uploaded_count) {
+                        message = `${data.uploaded_count} dosya başarıyla yüklendi`;
+                    }
+                    toastManager.show('Başarılı', message, 'success', 3000);
                     closeModal('mediaUploadModal');
                     this.reset();
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    toastManager.show('Hata', data && data.message ? data.message : 'Bilinmeyen bir hata oluştu', 'error', 4000);
+                    const errorMsg = data && data.message ? data.message : 'Bilinmeyen bir hata oluştu';
+                    toastManager.show('Hata', errorMsg, 'error', 4000);
                 }
             })
             .catch(error => {
@@ -23679,6 +23812,140 @@ window.createProductCard = function(product) {
         </div>
     `;
 };
+
+// Event Image Carousel Functions
+window.carouselData = window.carouselData || {};
+
+function initCarousel(carouselId) {
+    const carousel = document.getElementById(carouselId);
+    if (!carousel) return;
+    
+    const container = carousel.querySelector('.flex');
+    if (!container) return;
+    
+    const images = container.querySelectorAll('.min-w-full');
+    if (images.length <= 1) return;
+    
+    window.carouselData[carouselId] = {
+        currentIndex: 0,
+        total: images.length
+    };
+}
+
+function carouselNext(carouselId) {
+    const data = window.carouselData[carouselId];
+    if (!data) return;
+    
+    data.currentIndex = (data.currentIndex + 1) % data.total;
+    updateCarousel(carouselId);
+}
+
+function carouselPrev(carouselId) {
+    const data = window.carouselData[carouselId];
+    if (!data) return;
+    
+    data.currentIndex = (data.currentIndex - 1 + data.total) % data.total;
+    updateCarousel(carouselId);
+}
+
+function carouselGoTo(carouselId, index) {
+    const data = window.carouselData[carouselId];
+    if (!data) return;
+    
+    data.currentIndex = index;
+    updateCarousel(carouselId);
+}
+
+function updateCarousel(carouselId) {
+    const data = window.carouselData[carouselId];
+    if (!data) return;
+    
+    const carousel = document.getElementById(carouselId);
+    if (!carousel) return;
+    
+    const container = carousel.querySelector('.flex');
+    if (!container) return;
+    
+    const translateX = -data.currentIndex * 100;
+    container.style.transform = `translateX(${translateX}%)`;
+    
+    // Update dots
+    const dots = carousel.parentElement.querySelectorAll('.carousel-dot');
+    dots.forEach((dot, index) => {
+        if (index === data.currentIndex) {
+            dot.classList.add('bg-purple-600', 'w-6');
+            dot.classList.remove('bg-gray-300', 'dark:bg-gray-600');
+        } else {
+            dot.classList.remove('bg-purple-600', 'w-6');
+            dot.classList.add('bg-gray-300', 'dark:bg-gray-600');
+        }
+    });
+}
+
+// Auto-init carousels on page load
+(function() {
+    function initCarousels() {
+        initCarousel('eventImageCarousel');
+        
+        // Touch/swipe support for mobile
+        const carousel = document.getElementById('eventImageCarousel');
+        if (carousel) {
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            
+            carousel.addEventListener('touchstart', function(e) {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+            });
+            
+            carousel.addEventListener('touchmove', function(e) {
+                if (!isDragging) return;
+                currentX = e.touches[0].clientX;
+            });
+            
+            carousel.addEventListener('touchend', function() {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const diff = startX - currentX;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                        carouselNext('eventImageCarousel');
+                    } else {
+                        carouselPrev('eventImageCarousel');
+                    }
+                }
+            });
+        }
+    }
+    
+    // Sayfa yüklendiğinde initialize et
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCarousels);
+    } else {
+        initCarousels();
+    }
+    
+    // Event detail sayfası dinamik yüklenirse tekrar initialize et
+    if (typeof MutationObserver !== 'undefined') {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    const carousel = document.getElementById('eventImageCarousel');
+                    if (carousel && !window.carouselData['eventImageCarousel']) {
+                        initCarousels();
+                    }
+                }
+            });
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+})();
 
 // Kampanya kartı oluştur
 window.createCampaignCard = function(campaign) {

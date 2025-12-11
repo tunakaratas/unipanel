@@ -283,6 +283,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             
             if ($admin && PasswordManager::verify($password, $admin['password_hash'])) {
                     superadmin_reset_attempts('login');
+                
+                // TEST MODU: 2FA'yı atla ve direkt giriş yap
+                $test_mode = false; // SMS aktif - 2FA çalışıyor
+                
                 // Şifre doğru, 2FA başlat
                             $phone = get_superadmin_phone($db, $admin);
                 
@@ -302,11 +306,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                             $_SESSION['superadmin_verification_username'] = $username;
                             $_SESSION['superadmin_verification_code'] = $code;
                             $_SESSION['superadmin_verification_expires'] = time() + SUPERADMIN_CODE_TTL;
-                                            $_SESSION['superadmin_verification_last_sent'] = time();
+                            $_SESSION['superadmin_verification_last_sent'] = time();
                             $step = 'verify';
-                            $success = 'Doğrulama kodu gönderildi.';
+                            $success = 'Doğrulama kodu gönderildi. Lütfen telefonunuza gelen SMS kodunu girin.';
                         } else {
-                            $error = 'SMS gönderilemedi: ' . ($smsResult['error'] ?? 'Bilinmeyen hata');
+                            $error = 'SMS gönderilemedi: ' . ($smsResult['error'] ?? 'Bilinmeyen hata') . '. Lütfen NetGSM ayarlarını kontrol edin.';
                         }
                     }
                 }

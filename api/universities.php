@@ -55,10 +55,20 @@ try {
             $db = new SQLite3($db_path);
             $db->exec('PRAGMA journal_mode = WAL');
             
+            // Settings tablosunu oluştur (eğer yoksa)
+            $db->exec("CREATE TABLE IF NOT EXISTS settings (
+                id INTEGER PRIMARY KEY,
+                club_id INTEGER,
+                setting_key TEXT NOT NULL,
+                setting_value TEXT NOT NULL
+            )");
+            
             $settings_query = $db->query("SELECT setting_key, setting_value FROM settings WHERE club_id = 1");
             $settings = [];
-            while ($row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
-                $settings[$row['setting_key']] = $row['setting_value'];
+            if ($settings_query !== false) {
+                while ($row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
+                    $settings[$row['setting_key']] = $row['setting_value'];
+                }
             }
             
             // Üniversite bilgisini al (university veya organization field'ından)

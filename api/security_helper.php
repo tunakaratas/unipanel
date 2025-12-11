@@ -18,6 +18,8 @@ function isProduction() {
 function setSecureCORS() {
     // İzin verilen origin'ler
     $allowed_origins = [
+        'https://foursoftware.com.tr',
+        'https://www.foursoftware.com.tr',
         'https://community.foursoftware.net',
         'https://app.foursoftware.net',
         'https://admin.foursoftware.net',
@@ -40,9 +42,18 @@ function setSecureCORS() {
     if (in_array($origin, $allowed_origins)) {
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Credentials: true');
-    } elseif (empty($origin) && !isProduction()) {
-        // Development'ta origin yoksa localhost'a izin ver
-        header('Access-Control-Allow-Origin: http://localhost');
+    } elseif (empty($origin)) {
+        // Origin yoksa (mobile app'lerden gelebilir) production domain'e izin ver
+        if (isProduction()) {
+            header('Access-Control-Allow-Origin: https://foursoftware.com.tr');
+        } else {
+            header('Access-Control-Allow-Origin: http://localhost');
+        }
+    } else {
+        // Origin belirtilmiş ama whitelist'te yok - production'da izin verme
+        if (!isProduction()) {
+            header('Access-Control-Allow-Origin: ' . $origin);
+        }
     }
     
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');

@@ -5177,6 +5177,45 @@ foreach ($community_details as $details) {
                         </div>
                     </div>
 
+                    <!-- QR Kod Modal -->
+                    <div id="qrCodeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+                        <div class="flex items-center justify-center min-h-screen p-4">
+                            <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+                                <div class="p-6 border-b border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <h3 id="qrCodeTitle" class="text-xl font-semibold text-gray-800">QR Kod</h3>
+                                        <button onclick="closeQRCodeModal()" class="text-gray-400 hover:text-gray-600 transition">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <div class="bg-white p-4 rounded-lg border-2 border-gray-200 mb-4">
+                                            <img id="qrCodeImage" src="" alt="QR Kod" class="w-64 h-64 mx-auto" style="display: none;">
+                                        </div>
+                                        <div class="w-full mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">QR Kod URL'i:</label>
+                                            <div class="flex items-center gap-2">
+                                                <input type="text" id="qrCodeUrl" readonly class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-700">
+                                                <button onclick="copyQRUrl()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-semibold">
+                                                    Kopyala
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="w-full">
+                                            <a id="qrCodeLink" href="#" target="_blank" class="block w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-center font-semibold">
+                                                Linki Aç
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <script>
                         function openRejectModal(requestId) {
                             document.getElementById('reject_request_id').value = requestId;
@@ -5191,6 +5230,76 @@ foreach ($community_details as $details) {
                         document.getElementById('rejectModal').addEventListener('click', function(e) {
                             if (e.target === this) {
                                 closeRejectModal();
+                            }
+                        });
+                        
+                        // QR Kod Fonksiyonları
+                        function showCommunityQRCode(communityFolder, communityName) {
+                            const modal = document.getElementById('qrCodeModal');
+                            const qrImage = document.getElementById('qrCodeImage');
+                            const qrTitle = document.getElementById('qrCodeTitle');
+                            const qrUrlInput = document.getElementById('qrCodeUrl');
+                            const qrLink = document.getElementById('qrCodeLink');
+                            
+                            if (!modal || !qrImage || !qrTitle) return;
+                            
+                            // Gerçek URL'i oluştur
+                            const baseUrl = window.location.origin;
+                            const communityUrl = baseUrl + '/communities/' + encodeURIComponent(communityFolder) + '/';
+                            
+                            qrTitle.textContent = communityName + ' - QR Kod';
+                            qrUrlInput.value = communityUrl;
+                            qrLink.href = communityUrl;
+                            
+                            // QR kod görselini oluştur
+                            const qrApiUrl = '../api/qr_code.php?type=community&id=' + encodeURIComponent(communityFolder) + '&size=300';
+                            
+                            qrImage.onload = function() {
+                                qrImage.style.display = 'block';
+                            };
+                            
+                            qrImage.onerror = function() {
+                                qrImage.style.display = 'none';
+                                console.error('QR kod yüklenemedi');
+                            };
+                            
+                            qrImage.src = qrApiUrl;
+                            modal.classList.remove('hidden');
+                        }
+                        
+                        function closeQRCodeModal() {
+                            const modal = document.getElementById('qrCodeModal');
+                            if (modal) {
+                                modal.classList.add('hidden');
+                            }
+                        }
+                        
+                        function copyQRUrl() {
+                            const qrUrlInput = document.getElementById('qrCodeUrl');
+                            if (qrUrlInput) {
+                                qrUrlInput.select();
+                                qrUrlInput.setSelectionRange(0, 99999); // Mobil için
+                                document.execCommand('copy');
+                                
+                                // Kopyalandı bildirimi
+                                const btn = event.target;
+                                const originalText = btn.textContent;
+                                btn.textContent = 'Kopyalandı!';
+                                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                                btn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+                                
+                                setTimeout(function() {
+                                    btn.textContent = originalText;
+                                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                                    btn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                                }, 2000);
+                            }
+                        }
+                        
+                        // Modal dışına tıklanınca kapat
+                        document.getElementById('qrCodeModal')?.addEventListener('click', function(e) {
+                            if (e.target === this) {
+                                closeQRCodeModal();
                             }
                         });
                     </script>

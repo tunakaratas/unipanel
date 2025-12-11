@@ -1,0 +1,34 @@
+# Communities Directory - URL Routing
+# DirectoryIndex - Default to index.php (must be first)
+DirectoryIndex index.php
+
+# Allow all PHP files to be executed directly
+<FilesMatch "\.php$">
+    Require all granted
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /unipanel/communities/
+    
+    # Allow direct access to PHP files
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+    
+    # If request is for a directory that exists, try index.php
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteCond %{REQUEST_FILENAME}/index.php -f
+    RewriteRule ^(.*)/?$ $1/index.php [L,QSA]
+    
+    # If request doesn't match a file or directory, try to route to community
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^([a-z0-9_-]+)/?$ $1/index.php [L,QSA]
+    
+    # Route sub-paths to index.php (but not if it's a PHP file)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !\.php$
+    RewriteRule ^([a-z0-9_-]+)/(.+)$ $1/index.php [L,QSA]
+</IfModule>
+

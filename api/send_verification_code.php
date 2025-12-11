@@ -47,7 +47,12 @@ try {
         sendResponse(false, null, null, 'Sadece POST istekleri kabul edilir');
     }
     
-    $rawInput = file_get_contents('php://input');
+    // php://input stream'i sadece bir kez okunabilir, bu yüzden önce okuyalım
+    $rawInput = @file_get_contents('php://input');
+    // Eğer php://input boşsa, POST verisini kontrol et
+    if (empty($rawInput) && !empty($_POST)) {
+        $rawInput = json_encode($_POST);
+    }
     if (empty($rawInput)) {
         sendResponse(false, null, null, 'Request body boş');
     }
@@ -163,91 +168,116 @@ try {
     }
     $insert_stmt->close();
     
+    // Eksik fonksiyonları tanımla (communication.php yüklenmeden ÖNCE)
+    if (!function_exists('tpl_error_log')) {
+        function tpl_error_log($message) {
+            error_log($message);
+        }
+    }
+    
+    if (!function_exists('get_setting')) {
+        function get_setting($key, $default = '') {
+            return $default;
+        }
+    }
+    
+    if (!function_exists('get_db')) {
+        function get_db() {
+            // API context'inde get_db() gerekmiyor, null döndür
+            return null;
+        }
+    }
+    
     // E-posta gönder
     $emailSent = false;
     
     try {
-        // Communication modülünü yükle
-        $communicationPath = __DIR__ . '/../templates/functions/communication.php';
-        if (file_exists($communicationPath)) {
-            require_once $communicationPath;
-        }
-        
-        // Lazy loader'ı yükle
-        $lazyLoaderPath = __DIR__ . '/../templates/lazy_loader.php';
-        if (file_exists($lazyLoaderPath) && function_exists('load_module')) {
-            require_once $lazyLoaderPath;
-            if (function_exists('load_module')) {
-                load_module('communication');
-            }
-        }
-        
-        $subject = 'UniFour E-posta Doğrulama Kodu';
-        $message = "Merhaba,\n\nE-posta doğrulama kodunuz: {$code}\n\nBu kod 10 dakika geçerlidir.\n\nUniFour Ekibi";
-        
-        // SMTP ayarlarını al
+        // SMTP ayarlarını al - credentials.php'den (communication.php'den ÖNCE)
         $smtp_username = '';
         $smtp_password = '';
         $smtp_host = 'ms7.guzel.net.tr';
         $smtp_port = 587;
         $smtp_secure = 'tls';
+        $smtp_from_email = 'admin@foursoftware.com.tr';
+        $smtp_from_name = 'UniFour';
         
+        // credentials.php'den SMTP ayarlarını yükle
+        $credentialsPath = __DIR__ . '/../config/credentials.php';
+        if (file_exists($credentialsPath)) {
+            $credentials = require $credentialsPath;
+            if (isset($credentials['smtp'])) {
+                $smtp_config = $credentials['smtp'];
+                $smtp_username = $smtp_config['username'] ?? '';
+                $smtp_password = $smtp_config['password'] ?? '';
+                $smtp_host = $smtp_config['host'] ?? 'ms7.guzel.net.tr';
+                $smtp_port = (int)($smtp_config['port'] ?? 587);
+                $smtp_secure = $smtp_config['encryption'] ?? 'tls';
+                $smtp_from_email = $smtp_config['from_email'] ?? 'admin@foursoftware.com.tr';
+                $smtp_from_name = $smtp_config['from_name'] ?? 'UniFour';
+            }
+        }
+        
+        // Fallback: get_smtp_credential fonksiyonu varsa kullan (communication.php yüklendikten sonra)
+        // Communication modülünü yükle (send_smtp_mail için gerekli)
+        $communicationPath = __DIR__ . '/../templates/functions/communication.php';
+        if (!function_exists('send_smtp_mail') && file_exists($communicationPath)) {
+            require_once $communicationPath;
+        }
+        
+        // get_smtp_credential fonksiyonu varsa kullan
         if (function_exists('get_smtp_credential')) {
-            $smtp_username = get_smtp_credential('username');
-            $smtp_password = get_smtp_credential('password');
-            $smtp_host = get_smtp_credential('host', 'ms7.guzel.net.tr');
-            $smtp_port = (int)get_smtp_credential('port', 587);
-            $smtp_secure = get_smtp_credential('encryption', 'tls');
+            if (empty($smtp_username)) $smtp_username = get_smtp_credential('username');
+            if (empty($smtp_password)) $smtp_password = get_smtp_credential('password');
+            if (empty($smtp_host) || $smtp_host === 'ms7.guzel.net.tr') $smtp_host = get_smtp_credential('host', 'ms7.guzel.net.tr');
+            $smtp_port = (int)get_smtp_credential('port', $smtp_port);
+            $smtp_secure = get_smtp_credential('encryption', $smtp_secure);
         }
         
-        // Eksik fonksiyonları tanımla
-        if (!function_exists('tpl_error_log')) {
-            function tpl_error_log($message) {
-                error_log($message);
-            }
-        }
+        $subject = 'UniFour E-posta Doğrulama Kodu';
+        $message = "Merhaba,\n\nUniFour'a kayıt olmak için e-posta doğrulama kodunuz:\n\n{$code}\n\nBu kod 10 dakika geçerlidir.\n\nEğer bu işlemi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.\n\nUniFour Ekibi\nhttps://foursoftware.com.tr";
         
-        if (!function_exists('get_setting')) {
-            function get_setting($key, $default = '') {
-                return $default;
-            }
-        }
+        // SMTP ayarları kontrolü ve debug
+        error_log("SMTP Config Check - Username: " . (!empty($smtp_username) ? "SET" : "EMPTY") . ", Password: " . (!empty($smtp_password) ? "SET" : "EMPTY") . ", Host: $smtp_host, Port: $smtp_port, Function exists: " . (function_exists('send_smtp_mail') ? "YES" : "NO"));
         
-        if (!function_exists('get_db')) {
-            function get_db() {
-                // API context'inde get_db() gerekmiyor, null döndür
-                return null;
-            }
-        }
-        
-        // Basit SMTP gönderimi - get_db() gerektirmeyen versiyon
+        // Basit SMTP gönderimi
         if (!empty($smtp_username) && !empty($smtp_password) && function_exists('send_smtp_mail')) {
             try {
-                // get_db() null döndüğünde hata vermemesi için try-catch içinde çağır
-                $emailSent = @send_smtp_mail(
+                error_log("Attempting to send email to: $email via SMTP");
+                // send_smtp_mail parametreleri: to, subject, message, from_name, from_email, config
+                $emailSent = send_smtp_mail(
                     $email,
                     $subject,
                     $message,
-                    'UniFour',
-                    $smtp_username,
+                    $smtp_from_name,
+                    $smtp_from_email,  // from_email parametresi düzeltildi
                     [
                         'host' => $smtp_host,
                         'port' => $smtp_port,
                         'secure' => $smtp_secure,
                         'username' => $smtp_username,
                         'password' => $smtp_password,
+                        'from_email' => $smtp_from_email,
+                        'from_name' => $smtp_from_name,
                     ]
                 );
+                
+                error_log("SMTP send result: " . ($emailSent ? "SUCCESS" : "FAILED") . " for email: $email");
+                
+                if (!$emailSent) {
+                    error_log("SMTP send returned false for email: $email");
+                }
             } catch (Throwable $e) {
-                error_log("SMTP send error: " . $e->getMessage());
+                error_log("SMTP send error: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
                 // Hata olsa bile devam et, kod oluşturuldu
                 $emailSent = false;
             }
         } else {
+            error_log("SMTP config incomplete or function missing - Username: " . (!empty($smtp_username) ? "SET" : "EMPTY") . ", Password: " . (!empty($smtp_password) ? "SET" : "EMPTY") . ", Function: " . (function_exists('send_smtp_mail') ? "EXISTS" : "MISSING"));
             // Fallback: PHP mail() fonksiyonu
-            $headers = "From: UniFour <noreply@unifour.com>\r\n";
-            $headers .= "Reply-To: noreply@unifour.com\r\n";
+            $headers = "From: {$smtp_from_name} <{$smtp_from_email}>\r\n";
+            $headers .= "Reply-To: {$smtp_from_email}\r\n";
             $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
             $emailSent = @mail($email, $subject, $message, $headers);
         }
     } catch (Exception $emailException) {

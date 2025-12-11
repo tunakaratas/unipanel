@@ -292,11 +292,21 @@ function handle_file_upload($file, $subfolder, $allowed_extensions, $max_size) {
         
         // İzin verilen MIME type'lar
         $image_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        $video_mimes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv'];
+        $video_mimes = [
+            'video/mp4', 
+            'video/quicktime', 
+            'video/x-msvideo', 
+            'video/x-ms-wmv',
+            'video/webm',
+            'video/x-matroska', // MKV
+            'video/x-flv', // FLV
+            'video/3gpp', // 3GP
+            'video/3gp' // 3GP alternatif
+        ];
         $allowed_mimes = array_merge($image_mimes, $video_mimes);
         
         if (!in_array($mime_type, $allowed_mimes)) {
-            tpl_error_log("MIME type güvenlik hatası: $mime_type (dosya: {$file['name']})");
+            @tpl_error_log("MIME type güvenlik hatası: $mime_type (dosya: {$file['name']})");
             throw new Exception('Geçersiz dosya tipi. Sadece resim ve video dosyaları yüklenebilir.');
         }
         
@@ -333,8 +343,8 @@ function handle_file_upload($file, $subfolder, $allowed_extensions, $max_size) {
             throw new Exception('Dosya yüklenirken hata oluştu');
         }
     } catch (Exception $e) {
-        tpl_error_log("File upload error: " . $e->getMessage());
-        $_SESSION['error'] = 'Dosya yükleme hatası: ' . $e->getMessage();
+        @tpl_error_log("File upload error: " . $e->getMessage());
+        // Session'a yazma - JSON response için output üretmemeli
         return '';
     }
 }
@@ -1044,40 +1054,98 @@ function delete_event($db, $id) {
 // Etkinlik Medya İşlemleri
 
 function handle_upload_event_media($db, $post, $files) {
+    // Tüm output buffer'ları temizle - JSON parse hatasını önlemek için
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    // JSON header'ı hemen set et
+    header('Content-Type: application/json; charset=utf-8');
+    
     try {
         $event_id = (int)($post['event_id'] ?? 0);
         if (!$event_id) {
-            echo json_encode(['success' => false, 'message' => 'Geçersiz etkinlik ID']);
-            return;
+            echo json_encode(['success' => false, 'message' => 'Geçersiz etkinlik ID'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
         }
         
         $uploaded_count = 0;
         $errors = [];
+        $uploaded_files = [];
         
-        // Fotoğrafları yükle
-        if (isset($files['event_images']) && is_array($files['event_images']['name'])) {
-            foreach ($files['event_images']['name'] as $key => $name) {
-                // Hata kontrolü
-                if (!isset($files['event_images']['error'][$key])) {
-                    continue;
-                }
-                
-                if ($files['event_images']['error'][$key] === UPLOAD_ERR_OK) {
-                    $file = [
-                        'name' => $files['event_images']['name'][$key] ?? '',
-                        'type' => $files['event_images']['type'][$key] ?? '',
-                        'tmp_name' => $files['event_images']['tmp_name'][$key] ?? '',
-                        'error' => $files['event_images']['error'][$key] ?? UPLOAD_ERR_NO_FILE,
-                        'size' => $files['event_images']['size'][$key] ?? 0
-                    ];
-                    
-                    // Dosya adı kontrolü
-                    if (empty($file['name'])) {
+        // Fotoğrafları yükle - Çoklu dosya desteği
+        if (isset($files['event_images'])) {
+            // Tek dosya mı çoklu dosya mı kontrol et
+            if (is_array($files['event_images']['name'])) {
+                // Çoklu dosya
+                foreach ($files['event_images']['name'] as $key => $name) {
+                    // Hata kontrolü
+                    if (!isset($files['event_images']['error'][$key])) {
                         continue;
                     }
                     
+                    if ($files['event_images']['error'][$key] === UPLOAD_ERR_OK) {
+                        $file = [
+                            'name' => $files['event_images']['name'][$key] ?? '',
+                            'type' => $files['event_images']['type'][$key] ?? '',
+                            'tmp_name' => $files['event_images']['tmp_name'][$key] ?? '',
+                            'error' => $files['event_images']['error'][$key] ?? UPLOAD_ERR_NO_FILE,
+                            'size' => $files['event_images']['size'][$key] ?? 0
+                        ];
+                        
+                        // Dosya adı kontrolü
+                        if (empty($file['name'])) {
+                            continue;
+                        }
+                        
+                        try {
+                            $image_path = handle_file_upload($file, 'images/events/', ['jpg', 'jpeg', 'png', 'gif', 'webp'], 10 * 1024 * 1024); // 10MB
+                            
+                            if (!empty($image_path)) {
+                                $stmt = $db->prepare("INSERT INTO event_images (event_id, club_id, image_path) VALUES (?, ?, ?)");
+                                $stmt->bindValue(1, $event_id, SQLITE3_INTEGER);
+                                $stmt->bindValue(2, CLUB_ID, SQLITE3_INTEGER);
+                                $stmt->bindValue(3, $image_path, SQLITE3_TEXT);
+                                $stmt->execute();
+                                $uploaded_count++;
+                                $uploaded_files[] = ['type' => 'image', 'name' => $name, 'path' => $image_path];
+                            } else {
+                                $errors[] = $name . ': Dosya yüklenemedi';
+                            }
+                        } catch (Exception $e) {
+                            $errors[] = $name . ': ' . $e->getMessage();
+                        }
+                    } else {
+                        $error_msg = 'Bilinmeyen hata';
+                        switch ($files['event_images']['error'][$key]) {
+                            case UPLOAD_ERR_INI_SIZE:
+                            case UPLOAD_ERR_FORM_SIZE:
+                                $error_msg = 'Dosya boyutu çok büyük (Max 10MB)';
+                                break;
+                            case UPLOAD_ERR_PARTIAL:
+                                $error_msg = 'Dosya kısmen yüklendi';
+                                break;
+                            case UPLOAD_ERR_NO_FILE:
+                                $error_msg = 'Dosya seçilmedi';
+                                break;
+                            case UPLOAD_ERR_NO_TMP_DIR:
+                                $error_msg = 'Geçici klasör bulunamadı';
+                                break;
+                            case UPLOAD_ERR_CANT_WRITE:
+                                $error_msg = 'Dosya yazılamadı';
+                                break;
+                            case UPLOAD_ERR_EXTENSION:
+                                $error_msg = 'Dosya yükleme uzantı hatası';
+                                break;
+                        }
+                        $errors[] = ($name ? $name : 'Fotoğraf') . ': ' . $error_msg;
+                    }
+                }
+            } else {
+                // Tek dosya
+                if ($files['event_images']['error'] === UPLOAD_ERR_OK && !empty($files['event_images']['name'])) {
                     try {
-                        $image_path = handle_file_upload($file, 'images/events/', ['jpg', 'jpeg', 'png', 'gif'], 5 * 1024 * 1024);
+                        $image_path = handle_file_upload($files['event_images'], 'images/events/', ['jpg', 'jpeg', 'png', 'gif', 'webp'], 10 * 1024 * 1024);
                         
                         if (!empty($image_path)) {
                             $stmt = $db->prepare("INSERT INTO event_images (event_id, club_id, image_path) VALUES (?, ?, ?)");
@@ -1086,64 +1154,91 @@ function handle_upload_event_media($db, $post, $files) {
                             $stmt->bindValue(3, $image_path, SQLITE3_TEXT);
                             $stmt->execute();
                             $uploaded_count++;
+                            $uploaded_files[] = ['type' => 'image', 'name' => $files['event_images']['name'], 'path' => $image_path];
                         } else {
-                            $errors[] = $name . ': Dosya yüklenemedi';
+                            $errors[] = $files['event_images']['name'] . ': Dosya yüklenemedi';
                         }
                     } catch (Exception $e) {
-                        $errors[] = $name . ': ' . $e->getMessage();
+                        $errors[] = $files['event_images']['name'] . ': ' . $e->getMessage();
                     }
-                } else {
-                    $error_msg = 'Bilinmeyen hata';
-                    switch ($files['event_images']['error'][$key]) {
-                        case UPLOAD_ERR_INI_SIZE:
-                        case UPLOAD_ERR_FORM_SIZE:
-                            $error_msg = 'Dosya boyutu çok büyük';
-                            break;
-                        case UPLOAD_ERR_PARTIAL:
-                            $error_msg = 'Dosya kısmen yüklendi';
-                            break;
-                        case UPLOAD_ERR_NO_FILE:
-                            $error_msg = 'Dosya seçilmedi';
-                            break;
-                        case UPLOAD_ERR_NO_TMP_DIR:
-                            $error_msg = 'Geçici klasör bulunamadı';
-                            break;
-                        case UPLOAD_ERR_CANT_WRITE:
-                            $error_msg = 'Dosya yazılamadı';
-                            break;
-                        case UPLOAD_ERR_EXTENSION:
-                            $error_msg = 'Dosya yükleme uzantı hatası';
-                            break;
-                    }
-                    $errors[] = ($name ? $name : 'Fotoğraf') . ': ' . $error_msg;
                 }
             }
         }
         
-        // Videoları yükle
-        if (isset($files['event_videos']) && is_array($files['event_videos']['name'])) {
-            foreach ($files['event_videos']['name'] as $key => $name) {
-                // Hata kontrolü
-                if (!isset($files['event_videos']['error'][$key])) {
-                    continue;
-                }
-                
-                if ($files['event_videos']['error'][$key] === UPLOAD_ERR_OK) {
-                    $file = [
-                        'name' => $files['event_videos']['name'][$key] ?? '',
-                        'type' => $files['event_videos']['type'][$key] ?? '',
-                        'tmp_name' => $files['event_videos']['tmp_name'][$key] ?? '',
-                        'error' => $files['event_videos']['error'][$key] ?? UPLOAD_ERR_NO_FILE,
-                        'size' => $files['event_videos']['size'][$key] ?? 0
-                    ];
-                    
-                    // Dosya adı kontrolü
-                    if (empty($file['name'])) {
+        // Videoları yükle - Çoklu dosya desteği ve genişletilmiş formatlar
+        if (isset($files['event_videos'])) {
+            // Tek dosya mı çoklu dosya mı kontrol et
+            if (is_array($files['event_videos']['name'])) {
+                // Çoklu dosya
+                foreach ($files['event_videos']['name'] as $key => $name) {
+                    // Hata kontrolü
+                    if (!isset($files['event_videos']['error'][$key])) {
                         continue;
                     }
                     
+                    if ($files['event_videos']['error'][$key] === UPLOAD_ERR_OK) {
+                        $file = [
+                            'name' => $files['event_videos']['name'][$key] ?? '',
+                            'type' => $files['event_videos']['type'][$key] ?? '',
+                            'tmp_name' => $files['event_videos']['tmp_name'][$key] ?? '',
+                            'error' => $files['event_videos']['error'][$key] ?? UPLOAD_ERR_NO_FILE,
+                            'size' => $files['event_videos']['size'][$key] ?? 0
+                        ];
+                        
+                        // Dosya adı kontrolü
+                        if (empty($file['name'])) {
+                            continue;
+                        }
+                        
+                        try {
+                            // Genişletilmiş video formatları: mp4, avi, mov, wmv, webm, mkv, flv, 3gp
+                            $video_path = handle_file_upload($file, 'videos/events/', ['mp4', 'avi', 'mov', 'wmv', 'webm', 'mkv', 'flv', '3gp'], 100 * 1024 * 1024); // 100MB
+                            
+                            if (!empty($video_path)) {
+                                $stmt = $db->prepare("INSERT INTO event_videos (event_id, club_id, video_path) VALUES (?, ?, ?)");
+                                $stmt->bindValue(1, $event_id, SQLITE3_INTEGER);
+                                $stmt->bindValue(2, CLUB_ID, SQLITE3_INTEGER);
+                                $stmt->bindValue(3, $video_path, SQLITE3_TEXT);
+                                $stmt->execute();
+                                $uploaded_count++;
+                                $uploaded_files[] = ['type' => 'video', 'name' => $name, 'path' => $video_path];
+                            } else {
+                                $errors[] = $name . ': Dosya yüklenemedi';
+                            }
+                        } catch (Exception $e) {
+                            $errors[] = $name . ': ' . $e->getMessage();
+                        }
+                    } else {
+                        $error_msg = 'Bilinmeyen hata';
+                        switch ($files['event_videos']['error'][$key]) {
+                            case UPLOAD_ERR_INI_SIZE:
+                            case UPLOAD_ERR_FORM_SIZE:
+                                $error_msg = 'Dosya boyutu çok büyük (Max 100MB)';
+                                break;
+                            case UPLOAD_ERR_PARTIAL:
+                                $error_msg = 'Dosya kısmen yüklendi';
+                                break;
+                            case UPLOAD_ERR_NO_FILE:
+                                $error_msg = 'Dosya seçilmedi';
+                                break;
+                            case UPLOAD_ERR_NO_TMP_DIR:
+                                $error_msg = 'Geçici klasör bulunamadı';
+                                break;
+                            case UPLOAD_ERR_CANT_WRITE:
+                                $error_msg = 'Dosya yazılamadı';
+                                break;
+                            case UPLOAD_ERR_EXTENSION:
+                                $error_msg = 'Dosya yükleme uzantı hatası';
+                                break;
+                        }
+                        $errors[] = ($name ? $name : 'Video') . ': ' . $error_msg;
+                    }
+                }
+            } else {
+                // Tek dosya
+                if ($files['event_videos']['error'] === UPLOAD_ERR_OK && !empty($files['event_videos']['name'])) {
                     try {
-                        $video_path = handle_file_upload($file, 'videos/events/', ['mp4', 'avi', 'mov', 'wmv'], 50 * 1024 * 1024);
+                        $video_path = handle_file_upload($files['event_videos'], 'videos/events/', ['mp4', 'avi', 'mov', 'wmv', 'webm', 'mkv', 'flv', '3gp'], 100 * 1024 * 1024);
                         
                         if (!empty($video_path)) {
                             $stmt = $db->prepare("INSERT INTO event_videos (event_id, club_id, video_path) VALUES (?, ?, ?)");
@@ -1152,47 +1247,57 @@ function handle_upload_event_media($db, $post, $files) {
                             $stmt->bindValue(3, $video_path, SQLITE3_TEXT);
                             $stmt->execute();
                             $uploaded_count++;
+                            $uploaded_files[] = ['type' => 'video', 'name' => $files['event_videos']['name'], 'path' => $video_path];
                         } else {
-                            $errors[] = $name . ': Dosya yüklenemedi';
+                            $errors[] = $files['event_videos']['name'] . ': Dosya yüklenemedi';
                         }
                     } catch (Exception $e) {
-                        $errors[] = $name . ': ' . $e->getMessage();
+                        $errors[] = $files['event_videos']['name'] . ': ' . $e->getMessage();
                     }
-                } else {
-                    $error_msg = 'Bilinmeyen hata';
-                    switch ($files['event_videos']['error'][$key]) {
-                        case UPLOAD_ERR_INI_SIZE:
-                        case UPLOAD_ERR_FORM_SIZE:
-                            $error_msg = 'Dosya boyutu çok büyük';
-                            break;
-                        case UPLOAD_ERR_PARTIAL:
-                            $error_msg = 'Dosya kısmen yüklendi';
-                            break;
-                        case UPLOAD_ERR_NO_FILE:
-                            $error_msg = 'Dosya seçilmedi';
-                            break;
-                        case UPLOAD_ERR_NO_TMP_DIR:
-                            $error_msg = 'Geçici klasör bulunamadı';
-                            break;
-                        case UPLOAD_ERR_CANT_WRITE:
-                            $error_msg = 'Dosya yazılamadı';
-                            break;
-                        case UPLOAD_ERR_EXTENSION:
-                            $error_msg = 'Dosya yükleme uzantı hatası';
-                            break;
-                    }
-                    $errors[] = ($name ? $name : 'Video') . ': ' . $error_msg;
                 }
             }
         }
         
+        // JSON yanıtı döndür
         if ($uploaded_count > 0) {
-            echo json_encode(['success' => true, 'message' => "{$uploaded_count} dosya başarıyla yüklendi", 'errors' => $errors]);
+            $message = "{$uploaded_count} dosya başarıyla yüklendi";
+            if (!empty($errors)) {
+                $message .= ". Bazı dosyalar yüklenemedi: " . implode(', ', array_slice($errors, 0, 3));
+            }
+            $response = [
+                'success' => true, 
+                'message' => $message, 
+                'uploaded_count' => $uploaded_count,
+                'errors' => $errors,
+                'uploaded_files' => $uploaded_files
+            ];
         } else {
-            echo json_encode(['success' => false, 'message' => 'Yüklenecek dosya bulunamadı', 'errors' => $errors]);
+            $response = [
+                'success' => false, 
+                'message' => empty($errors) ? 'Yüklenecek dosya bulunamadı' : implode(', ', array_slice($errors, 0, 5)), 
+                'errors' => $errors
+            ];
         }
+        
+        // Tüm output buffer'ları tekrar temizle
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        // Sadece JSON döndür
+        echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => 'Hata: ' . $e->getMessage()]);
+        // Tüm output buffer'ları temizle
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Hata: ' . $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
 }
 

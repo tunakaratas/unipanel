@@ -1,0 +1,57 @@
+# Sunucuya Bağlan ve Projeyi Çek
+
+## 1. Sunucuya SSH ile Bağlan
+ssh root@89.252.152.125
+# Şifre: 651CceSl
+
+## 2. Sunucuda Çalıştırılacak Komutlar
+
+# Git kurulu mu kontrol et
+git --version || (apt-get update && apt-get install -y git)
+
+# Web dizinine git
+cd /var/www/html
+
+# Eğer eski unipanel varsa yedekle
+if [ -d "unipanel" ]; then
+    mv unipanel unipanel_backup_$(date +%Y%m%d_%H%M%S)
+fi
+
+# GitHub'dan projeyi clone et
+git clone https://github.com/tunakaratas/unipanel.git
+cd unipanel
+
+# Dosya izinlerini ayarla
+chmod -R 755 storage/
+chmod -R 755 logs/
+chmod -R 755 communities/
+chmod 644 .htaccess
+
+# Storage klasörlerini oluştur
+mkdir -p storage/databases
+mkdir -p storage/uploads
+mkdir -p storage/cache
+chmod -R 755 storage/
+
+# Config dosyasını oluştur
+cp config/credentials.example.php config/credentials.php
+# Sonra config/credentials.php dosyasını düzenle ve API anahtarlarını ekle
+
+# PHP ayarlarını kontrol et
+php -v
+php -m | grep sqlite
+
+# Apache restart (gerekirse)
+systemctl restart apache2
+# veya
+systemctl restart nginx
+
+## 3. İlk Giriş
+Tarayıcıda: https://yourdomain.com/superadmin/
+- Kullanıcı: superadmin
+- Şifre: SuperAdmin2024!
+
+## 4. Güncelleme (ileride)
+cd /var/www/html/unipanel
+git pull origin main
+

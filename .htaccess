@@ -71,3 +71,32 @@ Options -Indexes
     Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
 </IfModule>
+
+# URL Rewriting - Community Routing
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /unipanel/
+    
+    # Allow direct access to PHP files in communities
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^communities/ - [L]
+    
+    # Communities URL routing: Route /communities/{slug}/ to index.php
+    RewriteCond %{REQUEST_URI} ^/unipanel/communities/([a-z0-9_-]+)/?$ [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^communities/([a-z0-9_-]+)/?$ communities/$1/index.php [L,QSA]
+    
+    # Communities URL routing: Route /communities/{slug} (no trailing slash) to index.php
+    RewriteCond %{REQUEST_URI} ^/unipanel/communities/([a-z0-9_-]+)$ [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^communities/([a-z0-9_-]+)$ communities/$1/index.php [L,QSA]
+    
+    # Communities URL routing with trailing content (but not PHP files)
+    RewriteCond %{REQUEST_URI} ^/unipanel/communities/([a-z0-9_-]+)/(.+)$ [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !\.php$
+    RewriteRule ^communities/([a-z0-9_-]+)/(.+)$ communities/$1/index.php [L,QSA]
+</IfModule>

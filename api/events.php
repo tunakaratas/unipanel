@@ -268,6 +268,50 @@ try {
         // QR kod API URL'i
         $qr_code_url = $baseUrl . '/api/qr_code.php?type=event&id=' . urlencode($event_id) . '&community_id=' . urlencode($community_id);
         
+        // Event images (birden fazla fotoğraf)
+        $event_images = [];
+        try {
+            $images_stmt = @$db->prepare("SELECT id, image_path FROM event_images WHERE event_id = ? AND club_id = 1 ORDER BY uploaded_at DESC");
+            if ($images_stmt) {
+                $images_stmt->bindValue(1, $event_id, SQLITE3_INTEGER);
+                $images_result = $images_stmt->execute();
+                if ($images_result) {
+                    while ($image_row = $images_result->fetchArray(SQLITE3_ASSOC)) {
+                        $image_full_path = '/communities/' . $community_id . '/' . $image_row['image_path'];
+                        $event_images[] = [
+                            'id' => (string)$image_row['id'],
+                            'image_path' => $image_full_path,
+                            'image_url' => $image_full_path
+                        ];
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // event_images tablosu yoksa boş array
+        }
+        
+        // Event videos (birden fazla video)
+        $event_videos = [];
+        try {
+            $videos_stmt = @$db->prepare("SELECT id, video_path FROM event_videos WHERE event_id = ? AND club_id = 1 ORDER BY uploaded_at DESC");
+            if ($videos_stmt) {
+                $videos_stmt->bindValue(1, $event_id, SQLITE3_INTEGER);
+                $videos_result = $videos_stmt->execute();
+                if ($videos_result) {
+                    while ($video_row = $videos_result->fetchArray(SQLITE3_ASSOC)) {
+                        $video_full_path = '/communities/' . $community_id . '/' . $video_row['video_path'];
+                        $event_videos[] = [
+                            'id' => (string)$video_row['id'],
+                            'video_path' => $video_full_path,
+                            'video_url' => $video_full_path
+                        ];
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // event_videos tablosu yoksa boş array
+        }
+        
         $event = [
             'id' => (string)$row['id'],
             'title' => $row['title'] ?? '',
@@ -281,6 +325,8 @@ try {
             'image_url' => $image_path,
             'image_path' => $image_path,
             'video_path' => $video_path,
+            'images' => $event_images,
+            'videos' => $event_videos,
             'community_id' => $community_id,
             'community_name' => $community_name,
             'category' => $row['category'] ?? 'Diğer',
@@ -422,6 +468,68 @@ try {
             // QR kod API URL'i
             $qr_code_url = $baseUrl . '/api/qr_code.php?type=event&id=' . urlencode($row['id']) . '&community_id=' . urlencode($community_id);
             
+            // Event images (birden fazla fotoğraf) - Liste için sadece ilk birkaçını al
+            $event_images = [];
+            try {
+                $images_stmt = @$db->prepare("SELECT id, image_path FROM event_images WHERE event_id = ? AND club_id = 1 ORDER BY uploaded_at DESC LIMIT 5");
+                if ($images_stmt) {
+                    $images_stmt->bindValue(1, $row['id'], SQLITE3_INTEGER);
+                    $images_result = $images_stmt->execute();
+                    if ($images_result) {
+                        while ($image_row = $images_result->fetchArray(SQLITE3_ASSOC)) {
+                            $image_full_path = '/communities/' . $community_id . '/' . $image_row['image_path'];
+                            $event_images[] = [
+                                'id' => (string)$image_row['id'],
+                                'image_path' => $image_full_path,
+                                'image_url' => $image_full_path
+                            ];
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                // event_images tablosu yoksa boş array
+            }
+            
+            // Eski image_path varsa ve images array'inde yoksa ekle
+            if (!empty($image_path) && empty($event_images)) {
+                $event_images[] = [
+                    'id' => '0',
+                    'image_path' => $image_path,
+                    'image_url' => $image_path
+                ];
+            }
+            
+            // Event videos (birden fazla video) - Liste için sadece ilk birkaçını al
+            $event_videos = [];
+            try {
+                $videos_stmt = @$db->prepare("SELECT id, video_path FROM event_videos WHERE event_id = ? AND club_id = 1 ORDER BY uploaded_at DESC LIMIT 3");
+                if ($videos_stmt) {
+                    $videos_stmt->bindValue(1, $row['id'], SQLITE3_INTEGER);
+                    $videos_result = $videos_stmt->execute();
+                    if ($videos_result) {
+                        while ($video_row = $videos_result->fetchArray(SQLITE3_ASSOC)) {
+                            $video_full_path = '/communities/' . $community_id . '/' . $video_row['video_path'];
+                            $event_videos[] = [
+                                'id' => (string)$video_row['id'],
+                                'video_path' => $video_full_path,
+                                'video_url' => $video_full_path
+                            ];
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                // event_videos tablosu yoksa boş array
+            }
+            
+            // Eski video_path varsa ve videos array'inde yoksa ekle
+            if (!empty($video_path) && empty($event_videos)) {
+                $event_videos[] = [
+                    'id' => '0',
+                    'video_path' => $video_path,
+                    'video_url' => $video_path
+                ];
+            }
+            
             $all_events[] = [
                 'id' => (string)$row['id'],
                 'title' => $row['title'] ?? '',
@@ -435,6 +543,8 @@ try {
                 'image_url' => $image_path,
                 'image_path' => $image_path,
                 'video_path' => $video_path,
+                'images' => $event_images,
+                'videos' => $event_videos,
                 'community_id' => $community_id,
                 'community_name' => $community_name,
                 'category' => $row['category'] ?? 'Diğer',
@@ -595,6 +705,68 @@ try {
                     // QR kod API URL'i
                     $qr_code_url = $baseUrl . '/api/qr_code.php?type=event&id=' . urlencode($row['id']) . '&community_id=' . urlencode($community['id']);
                     
+                    // Event images (birden fazla fotoğraf) - Liste için sadece ilk birkaçını al
+                    $event_images = [];
+                    try {
+                        $images_stmt = @$db->prepare("SELECT id, image_path FROM event_images WHERE event_id = ? AND club_id = 1 ORDER BY uploaded_at DESC LIMIT 5");
+                        if ($images_stmt) {
+                            $images_stmt->bindValue(1, $row['id'], SQLITE3_INTEGER);
+                            $images_result = $images_stmt->execute();
+                            if ($images_result) {
+                                while ($image_row = $images_result->fetchArray(SQLITE3_ASSOC)) {
+                                    $image_full_path = '/communities/' . $community['id'] . '/' . $image_row['image_path'];
+                                    $event_images[] = [
+                                        'id' => (string)$image_row['id'],
+                                        'image_path' => $image_full_path,
+                                        'image_url' => $image_full_path
+                                    ];
+                                }
+                            }
+                        }
+                    } catch (Exception $e) {
+                        // event_images tablosu yoksa boş array
+                    }
+                    
+                    // Eski image_path varsa ve images array'inde yoksa ekle
+                    if (!empty($image_path) && empty($event_images)) {
+                        $event_images[] = [
+                            'id' => '0',
+                            'image_path' => $image_path,
+                            'image_url' => $image_path
+                        ];
+                    }
+                    
+                    // Event videos (birden fazla video) - Liste için sadece ilk birkaçını al
+                    $event_videos = [];
+                    try {
+                        $videos_stmt = @$db->prepare("SELECT id, video_path FROM event_videos WHERE event_id = ? AND club_id = 1 ORDER BY uploaded_at DESC LIMIT 3");
+                        if ($videos_stmt) {
+                            $videos_stmt->bindValue(1, $row['id'], SQLITE3_INTEGER);
+                            $videos_result = $videos_stmt->execute();
+                            if ($videos_result) {
+                                while ($video_row = $videos_result->fetchArray(SQLITE3_ASSOC)) {
+                                    $video_full_path = '/communities/' . $community['id'] . '/' . $video_row['video_path'];
+                                    $event_videos[] = [
+                                        'id' => (string)$video_row['id'],
+                                        'video_path' => $video_full_path,
+                                        'video_url' => $video_full_path
+                                    ];
+                                }
+                            }
+                        }
+                    } catch (Exception $e) {
+                        // event_videos tablosu yoksa boş array
+                    }
+                    
+                    // Eski video_path varsa ve videos array'inde yoksa ekle
+                    if (!empty($video_path) && empty($event_videos)) {
+                        $event_videos[] = [
+                            'id' => '0',
+                            'video_path' => $video_path,
+                            'video_url' => $video_path
+                        ];
+                    }
+                    
                     $all_events[] = [
                         'id' => (string)$row['id'],
                         'title' => $row['title'] ?? '',
@@ -608,6 +780,8 @@ try {
                         'image_url' => $image_path,
                         'image_path' => $image_path,
                         'video_path' => $video_path,
+                        'images' => $event_images,
+                        'videos' => $event_videos,
                         'community_id' => $community['id'],
                         'community_name' => $community_name,
                         'category' => $row['category'] ?? 'Diğer',

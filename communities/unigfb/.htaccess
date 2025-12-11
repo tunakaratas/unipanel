@@ -1,0 +1,7 @@
+# Community Directory - Allow PHP execution
+DirectoryIndex index.php
+
+<FilesMatch "\.php$">
+    Require all granted
+</FilesMatch>
+
