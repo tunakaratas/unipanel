@@ -45,9 +45,10 @@ if ($method === 'GET') {
         exit;
     }
     
-    // QR kod içeriği oluştur - Swift uygulaması için deep link formatı
+    // QR kod içeriği oluştur - Web URL'i kullan (iOS güvenlik için)
     $deepLink = '';
     $webUrl = '';
+    $redirectUrl = '';
     $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
     
     if ($type === 'community') {
@@ -55,6 +56,8 @@ if ($method === 'GET') {
         $deepLink = 'unifour://community/' . urlencode($id);
         // Web URL'i de ekle (fallback için)
         $webUrl = $baseUrl . "/communities/" . urlencode($id) . "/";
+        // Redirect URL'i (QR kod içeriği olarak kullanılacak)
+        $redirectUrl = $baseUrl . "/qr-redirect.php?type=community&id=" . urlencode($id);
     } elseif ($type === 'event') {
         if (empty($communityId)) {
             http_response_code(400);
@@ -68,6 +71,8 @@ if ($method === 'GET') {
         $deepLink = 'unifour://event/' . urlencode($communityId) . '/' . urlencode($id);
         // Web URL'i de ekle (fallback için)
         $webUrl = $baseUrl . "/communities/" . urlencode($communityId) . "/?view=events&event_id=" . urlencode($id);
+        // Redirect URL'i (QR kod içeriği olarak kullanılacak)
+        $redirectUrl = $baseUrl . "/qr-redirect.php?type=event&id=" . urlencode($id) . "&community_id=" . urlencode($communityId);
     } elseif ($type === 'url') {
         // Direkt URL parametresi
         $url = $_GET['url'] ?? '';
@@ -81,6 +86,7 @@ if ($method === 'GET') {
         }
         $deepLink = urldecode($url);
         $webUrl = urldecode($url);
+        $redirectUrl = urldecode($url);
     } else {
         http_response_code(400);
         echo json_encode([
@@ -90,8 +96,8 @@ if ($method === 'GET') {
         exit;
     }
     
-    // QR kod içeriği olarak deep link kullan (Swift uygulaması bunu yakalayacak)
-    $qrContent = $deepLink;
+    // QR kod içeriği olarak redirect URL'i kullan (iOS güvenlik için web URL'i gerekli)
+    $qrContent = $redirectUrl;
     
     // QR kod URL'i oluştur
     $qrUrl = generateQRCodeSVG($qrContent, $size);
@@ -103,6 +109,7 @@ if ($method === 'GET') {
             'qr_url' => $qrUrl,
             'qr_base64' => $qrBase64,
             'content' => $qrContent,
+            'redirect_url' => $redirectUrl,
             'deep_link' => $deepLink,
             'web_url' => $webUrl,
             'type' => $type,
