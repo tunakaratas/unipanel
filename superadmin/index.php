@@ -1476,6 +1476,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'approve_request') {
                             $settings[] = ['admin_email', $admin_email];
                         }
                         
+                        // SMTP ayarlarını config/credentials.php'den çek ve ekle
+                        try {
+                            $credentials_path = __DIR__ . '/../config/credentials.php';
+                            if (file_exists($credentials_path)) {
+                                $credentials = require $credentials_path;
+                                if (isset($credentials['smtp']) && is_array($credentials['smtp'])) {
+                                    $smtp_config = $credentials['smtp'];
+                                    
+                                    if (!empty($smtp_config['username'])) {
+                                        $settings[] = ['smtp_username', $smtp_config['username']];
+                                    }
+                                    if (!empty($smtp_config['password'])) {
+                                        $settings[] = ['smtp_password', $smtp_config['password']];
+                                    }
+                                    if (!empty($smtp_config['host'])) {
+                                        $settings[] = ['smtp_host', $smtp_config['host']];
+                                    }
+                                    if (!empty($smtp_config['port'])) {
+                                        $settings[] = ['smtp_port', (string)$smtp_config['port']];
+                                    }
+                                    if (!empty($smtp_config['encryption'])) {
+                                        $settings[] = ['smtp_secure', $smtp_config['encryption']];
+                                    }
+                                    if (!empty($smtp_config['from_email'])) {
+                                        $settings[] = ['smtp_from_email', $smtp_config['from_email']];
+                                    }
+                                    if (!empty($smtp_config['from_name'])) {
+                                        $settings[] = ['smtp_from_name', $smtp_config['from_name']];
+                                    }
+                                }
+                            }
+                        } catch (Exception $e) {
+                            error_log("SMTP ayarları yüklenirken hata: " . $e->getMessage());
+                        }
+                        
                         foreach ($settings as $setting) {
                             $stmt = $community_db->prepare("INSERT INTO settings (club_id, setting_key, setting_value) VALUES (?, ?, ?)");
                             $stmt->bindValue(1, 1, SQLITE3_INTEGER);
