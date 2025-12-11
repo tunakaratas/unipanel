@@ -279,6 +279,9 @@ class SubscriptionManager {
      * Aktif aboneliği kontrol et - Standart her zaman aktif
      */
     public function isActive() {
+        // Tabloyu garantile
+        $this->createSubscriptionTable();
+        
         // Standart abonelik her zaman aktif
         $standard_stmt = $this->db->prepare("
             SELECT * FROM subscriptions 
@@ -288,6 +291,10 @@ class SubscriptionManager {
             AND is_active = 1
             LIMIT 1
         ");
+        if ($standard_stmt === false) {
+            error_log("SubscriptionManager isActive: standard prepare() failed - " . $this->db->lastErrorMsg());
+            return true; // Varsayılan olarak aktif döndür
+        }
         $standard_stmt->bindValue(1, $this->communityId, \SQLITE3_TEXT);
         $standard_result = $standard_stmt->execute();
         $standard_subscription = $standard_result->fetchArray(\SQLITE3_ASSOC);
@@ -307,6 +314,10 @@ class SubscriptionManager {
             ORDER BY end_date DESC 
             LIMIT 1
         ");
+        if ($stmt === false) {
+            error_log("SubscriptionManager isActive: prepare() failed - " . $this->db->lastErrorMsg());
+            return false;
+        }
         $stmt->bindValue(1, $this->communityId, \SQLITE3_TEXT);
         $result = $stmt->execute();
         $subscription = $result->fetchArray(\SQLITE3_ASSOC);
