@@ -9410,10 +9410,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                             <!-- Main Content -->
                             <div class="p-8">
                                 <!-- Essential Info Grid -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 pb-8 border-b-2 border-gray-200 dark:border-gray-700">
+                                    <div class="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all">
+                                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h.01M16 11h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
                                         </div>
@@ -9428,9 +9428,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                         </div>
                                     </div>
                                     
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all">
+                                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
                                         </div>
@@ -9443,9 +9443,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                         </div>
                                     </div>
                                     
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all">
+                                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                             </svg>
@@ -9456,9 +9456,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                         </div>
                                     </div>
                                     
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all">
+                                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                             </svg>
                                         </div>
@@ -9475,12 +9475,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                     <div class="lg:col-span-2">
                                         <div class="mb-6">
                                             <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                                                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                                 </svg>
                                                 Açıklama
                                             </h3>
-                                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                                            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700">
                                                 <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap"><?= nl2br(htmlspecialchars($event_detail['description'] ?: 'Bu etkinlik için detaylı açıklama bulunmamaktadır.')) ?></p>
                                             </div>
                                         </div>
@@ -9488,7 +9488,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                         <?php if (!empty($event_detail['image_path']) || !empty($event_detail['video_path'])): ?>
                                         <div>
                                             <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                                                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                                 </svg>
                                                 Medya
@@ -9519,46 +9519,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                     
                                     <!-- Sidebar Info -->
                                     <div class="space-y-6">
-                                        <div>
-                                            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Detaylar</h3>
+                                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border-2 border-gray-200 dark:border-gray-700">
+                                            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-3 border-b-2 border-gray-200 dark:border-gray-700">Detaylar</h3>
                                             <div class="space-y-3">
                                                 <?php if (!empty($event_detail['organizer'])): ?>
-                                                <div class="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div class="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-700">
                                                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Organizatör</span>
                                                     <span class="text-xs font-semibold text-gray-900 dark:text-gray-100 text-right"><?= htmlspecialchars($event_detail['organizer']) ?></span>
                                                 </div>
                                                 <?php endif; ?>
                                                 
                                                 <?php if (!empty($event_detail['contact_email'])): ?>
-                                                <div class="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div class="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-700">
                                                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">E-posta</span>
-                                                    <a href="mailto:<?= htmlspecialchars($event_detail['contact_email']) ?>" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline text-right"><?= htmlspecialchars($event_detail['contact_email']) ?></a>
+                                                    <a href="mailto:<?= htmlspecialchars($event_detail['contact_email']) ?>" class="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline text-right"><?= htmlspecialchars($event_detail['contact_email']) ?></a>
                                                 </div>
                                                 <?php endif; ?>
                                                 
                                                 <?php if (!empty($event_detail['contact_phone'])): ?>
-                                                <div class="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div class="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-700">
                                                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Telefon</span>
-                                                    <a href="tel:<?= htmlspecialchars($event_detail['contact_phone']) ?>" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline text-right"><?= htmlspecialchars($event_detail['contact_phone']) ?></a>
+                                                    <a href="tel:<?= htmlspecialchars($event_detail['contact_phone']) ?>" class="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline text-right"><?= htmlspecialchars($event_detail['contact_phone']) ?></a>
                                                 </div>
                                                 <?php endif; ?>
                                                 
                                                 <?php if (isset($event_detail['cost']) && $event_detail['cost'] > 0): ?>
-                                                <div class="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div class="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-700">
                                                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Ücret</span>
                                                     <span class="text-xs font-semibold text-gray-900 dark:text-gray-100 text-right"><?= number_format($event_detail['cost'], 2) ?> TL</span>
                                                 </div>
                                                 <?php endif; ?>
                                                 
                                                 <?php if (!empty($event_detail['capacity'])): ?>
-                                                <div class="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div class="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-700">
                                                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Kapasite</span>
                                                     <span class="text-xs font-semibold text-gray-900 dark:text-gray-100 text-right"><?= $event_detail['capacity'] ?> kişi</span>
                                                 </div>
                                                 <?php endif; ?>
                                                 
                                                 <?php if (!empty($event_detail['registration_deadline'])): ?>
-                                                <div class="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div class="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-700">
                                                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Kayıt Son Tarihi</span>
                                                     <span class="text-xs font-semibold text-gray-900 dark:text-gray-100 text-right"><?= date('d.m.Y H:i', strtotime($event_detail['registration_deadline'])) ?></span>
                                                 </div>
@@ -9568,11 +9568,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                                     $tags = json_decode($event_detail['tags'], true);
                                                     if (is_array($tags) && count($tags) > 0):
                                                 ?>
-                                                <div class="pt-2">
+                                                <div class="pt-3">
                                                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Etiketler</p>
                                                     <div class="flex flex-wrap gap-1.5">
                                                         <?php foreach ($tags as $tag): ?>
-                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700">
                                                             <?= htmlspecialchars(trim($tag)) ?>
                                                         </span>
                                                         <?php endforeach; ?>
@@ -9583,7 +9583,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                                 <?php if (!empty($event_detail['external_link'])): ?>
                                                 <div class="pt-2">
                                                     <a href="<?= htmlspecialchars($event_detail['external_link']) ?>" target="_blank" rel="noopener noreferrer" 
-                                                       class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                                                       class="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                                                         </svg>
@@ -9596,27 +9596,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                         
                                         <!-- RSVP List -->
                                         <?php if (count($rsvp_list) > 0): ?>
-                                        <div>
-                                            <div class="flex items-center justify-between mb-3">
+                                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border-2 border-gray-200 dark:border-gray-700">
+                                            <div class="flex items-center justify-between mb-4 pb-3 border-b-2 border-gray-200 dark:border-gray-700">
                                                 <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Katılımcılar</h3>
-                                                <div class="flex items-center gap-1.5">
-                                                    <span class="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-semibold"><?= $attending_count ?></span>
-                                                    <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs font-semibold"><?= count($rsvp_list) - $attending_count ?></span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2.5 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-semibold border border-purple-200 dark:border-purple-700"><?= $attending_count ?></span>
+                                                    <span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-600"><?= count($rsvp_list) - $attending_count ?></span>
                                                 </div>
                                             </div>
-                                            <div class="max-h-64 overflow-y-auto space-y-1.5">
+                                            <div class="max-h-64 overflow-y-auto space-y-2">
                                                 <?php foreach (array_slice($rsvp_list, 0, 10) as $rsvp): ?>
-                                                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600">
+                                                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                                                     <div class="flex-1 min-w-0">
                                                         <p class="text-xs font-medium text-gray-900 dark:text-gray-100 truncate"><?= htmlspecialchars($rsvp['member_name']) ?></p>
                                                         <p class="text-xs text-gray-500 dark:text-gray-400 truncate"><?= htmlspecialchars($rsvp['member_email']) ?></p>
                                                     </div>
                                                     <?php if ($rsvp['rsvp_status'] === 'attending'): ?>
-                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 flex-shrink-0">
+                                                    <span class="ml-2 inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700 flex-shrink-0">
                                                         Katılacak
                                                     </span>
                                                     <?php else: ?>
-                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 flex-shrink-0">
+                                                    <span class="ml-2 inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 flex-shrink-0">
                                                         Katılmayacak
                                                     </span>
                                                     <?php endif; ?>
@@ -9632,7 +9632,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                 </div>
                                 
                                 <!-- Survey Section -->
-                                <div class="border-t border-gray-200 dark:border-gray-700 pt-8">
+                                <div class="border-t-2 border-gray-200 dark:border-gray-700 pt-8">
                                     <div class="flex items-center justify-between mb-6">
                                         <div class="flex items-center gap-3">
                                             <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
@@ -9648,7 +9648,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                             </div>
                                         </div>
                                         <button onclick="openSurveyModal(<?= $event_detail['id'] ?>)" 
-                                                class="inline-flex items-center gap-2 px-4 py-2 <?= $survey_exists ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-green-600 hover:bg-green-700' ?> text-white rounded-lg text-sm font-semibold transition-all duration-200">
+                                                class="inline-flex items-center gap-2 px-4 py-2 <?= $survey_exists ? 'bg-purple-600 hover:bg-purple-700' : 'bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50' ?> text-white rounded-lg text-sm font-semibold transition-all duration-200">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                             </svg>
@@ -9661,31 +9661,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                         $survey_participant_count = (int)($survey['participant_count'] ?? 0);
                                     ?>
                                     <div class="grid grid-cols-3 gap-4 mb-6">
-                                        <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700 text-center">
-                                            <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">Katılımcı</p>
-                                            <p class="text-2xl font-bold text-indigo-900 dark:text-indigo-100"><?= $survey_participant_count ?></p>
+                                        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-700 text-center">
+                                            <p class="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-1">Katılımcı</p>
+                                            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100"><?= $survey_participant_count ?></p>
                                         </div>
-                                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700 text-center">
-                                            <p class="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">Yanıt</p>
-                                            <p class="text-2xl font-bold text-blue-900 dark:text-blue-100"><?= $survey_total_responses ?></p>
+                                        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 text-center">
+                                            <p class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Yanıt</p>
+                                            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100"><?= $survey_total_responses ?></p>
                                         </div>
-                                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 text-center">
+                                        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 text-center">
                                             <p class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Soru</p>
                                             <p class="text-2xl font-bold text-gray-900 dark:text-gray-100"><?= count($survey['questions'] ?? []) ?></p>
                                         </div>
                                     </div>
                                     
                                     <?php if (!empty($survey['questions'])): ?>
-                                    <div class="space-y-3">
+                                    <div class="space-y-4">
                                         <?php foreach ($survey['questions'] as $index => $question): 
                                             $question_total = (int)($question['total_responses'] ?? 0);
                                             $question_title = $question['question_text'] ?? '';
                                             $question_options = $question['options'] ?? [];
                                         ?>
-                                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/40">
-                                            <div class="flex items-start justify-between mb-3">
+                                        <div class="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-5 bg-white dark:bg-gray-800">
+                                            <div class="flex items-start justify-between mb-4">
                                                 <div class="flex items-start gap-3 flex-1">
-                                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200 text-xs font-bold flex-shrink-0"><?= $index + 1 ?></span>
+                                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-bold flex-shrink-0 border border-purple-200 dark:border-purple-700"><?= $index + 1 ?></span>
                                                     <div class="flex-1 min-w-0">
                                                         <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100"><?= htmlspecialchars($question_title) ?></h4>
                                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><?= ($question['question_type'] ?? 'multiple_choice') === 'multiple_choice' ? 'Çoktan seçmeli' : 'Metin yanıtı' ?></p>
@@ -9695,7 +9695,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                             </div>
                                             
                                             <?php if (!empty($question_options)): ?>
-                                            <div class="space-y-2">
+                                            <div class="space-y-3">
                                                 <?php foreach ($question_options as $option): 
                                                     $option_text = $option['option_text'] ?? '';
                                                     $option_count = (int)($option['response_count'] ?? 0);
@@ -9703,12 +9703,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $TPL_GET_ACTION !== '' && isset($_SE
                                                     $bar_width = $question_total > 0 ? max(4, min(100, $option_percentage)) : 0;
                                                 ?>
                                                 <div>
-                                                    <div class="flex items-center justify-between text-xs mb-1">
+                                                    <div class="flex items-center justify-between text-xs mb-2">
                                                         <span class="font-medium text-gray-700 dark:text-gray-300 truncate"><?= htmlspecialchars($option_text) ?></span>
                                                         <span class="font-semibold text-gray-900 dark:text-gray-100 ml-2 flex-shrink-0"><?= number_format($option_percentage, 1) ?>% (<?= $option_count ?>)</span>
                                                     </div>
-                                                    <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                                        <div class="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-600" style="width: <?= $bar_width ?>%;"></div>
+                                                    <div class="h-2.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                                        <div class="h-full rounded-full bg-purple-600" style="width: <?= $bar_width ?>%;"></div>
                                                     </div>
                                                 </div>
                                                 <?php endforeach; ?>
