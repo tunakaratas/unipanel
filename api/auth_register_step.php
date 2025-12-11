@@ -38,24 +38,13 @@ try {
     $input = json_decode(file_get_contents('php://input'), true);
     $step = $input['step'] ?? '1';
     
-    // Step 1: Email + Password -> Verification code gönder
+    // Step 1: Sadece Email -> Verification code gönder
     if ($step === '1') {
         if (!isset($input['email']) || empty(trim($input['email']))) {
             sendResponse(false, null, null, 'Email adresi gerekli');
         }
         
-        if (!isset($input['password']) || empty($input['password'])) {
-            sendResponse(false, null, null, 'Şifre gerekli');
-        }
-        
         $email = sanitizeInput(trim($input['email']), 'email');
-        $password = $input['password'];
-        
-        // Şifre validasyonu
-        $passwordValidation = validatePassword($password);
-        if (!$passwordValidation['valid']) {
-            sendResponse(false, null, null, $passwordValidation['message']);
-        }
         
         // Email zaten kayıtlı mı kontrol et
         $system_db_path = __DIR__ . '/../public/unipanel.sqlite';
@@ -73,17 +62,10 @@ try {
             $db->close();
         }
         
-        // Email verification code gönder
-        require_once __DIR__ . '/send_verification_code.php';
-        
-        // send_verification_code.php'yi çağır (session kullanmadan)
-        $_POST['email'] = $email;
-        $_POST['action'] = 'send_code';
-        
         // Code gönder
         $code = generateVerificationCode();
         
-        // Code'u geçici olarak kaydet (session yerine dosya veya database)
+        // Code'u geçici olarak kaydet (session yerine dosya)
         $temp_codes_file = __DIR__ . '/../system/temp_verification_codes.json';
         $temp_codes_dir = dirname($temp_codes_file);
         if (!is_dir($temp_codes_dir)) {
@@ -103,11 +85,11 @@ try {
             }
         }
         
-        // Yeni kodu ekle
+        // Yeni kodu ekle (şifre henüz yok)
         $temp_codes[$email] = [
             'code' => $code,
-            'password_hash' => password_hash($password, PASSWORD_BCRYPT),
-            'timestamp' => $now
+            'timestamp' => $now,
+            'verified' => false
         ];
         
         file_put_contents($temp_codes_file, json_encode($temp_codes, JSON_UNESCAPED_UNICODE));
@@ -122,7 +104,7 @@ try {
         }
     }
     
-    // Step 2: Email verification code doğrula -> Kullanıcı oluştur
+    // Step 2: Email verification code doğrula (henüz hesap oluşturulmuyor)
     if ($step === '2') {
         if (!isset($input['email']) || empty(trim($input['email']))) {
             sendResponse(false, null, null, 'Email adresi gerekli');
@@ -132,18 +114,8 @@ try {
             sendResponse(false, null, null, 'Doğrulama kodu gerekli');
         }
         
-        if (!isset($input['first_name']) || empty(trim($input['first_name']))) {
-            sendResponse(false, null, null, 'Ad gerekli');
-        }
-        
-        if (!isset($input['last_name']) || empty(trim($input['last_name']))) {
-            sendResponse(false, null, null, 'Soyad gerekli');
-        }
-        
         $email = sanitizeInput(trim($input['email']), 'email');
         $code = trim($input['code']);
-        $first_name = sanitizeInput(trim($input['first_name']), 'string');
-        $last_name = sanitizeInput(trim($input['last_name']), 'string');
         
         // Geçici kodları kontrol et
         $temp_codes_file = __DIR__ . '/../system/temp_verification_codes.json';
@@ -169,6 +141,54 @@ try {
         // Kod doğru mu kontrol et
         if ($code_data['code'] !== $code) {
             sendResponse(false, null, null, 'Doğrulama kodu hatalı.');
+        }
+        
+        // Email doğrulandı olarak işaretle
+        $temp_codes[$email]['verified'] = true;
+        file_put_contents($temp_codes_file, json_encode($temp_codes, JSON_UNESCAPED_UNICODE));
+        
+        sendResponse(true, ['email' => $email], 'E-posta doğrulandı. Şimdi şifre ve isim bilgilerinizi girebilirsiniz.');
+    }
+    
+    // Step 3: Şifre + İsim Soyisim -> Kullanıcı oluştur
+    if ($step === '3') {
+        if (!isset($input['email']) || empty(trim($input['email']))) {
+            sendResponse(false, null, null, 'Email adresi gerekli');
+        }
+        
+        if (!isset($input['password']) || empty($input['password'])) {
+            sendResponse(false, null, null, 'Şifre gerekli');
+        }
+        
+        if (!isset($input['first_name']) || empty(trim($input['first_name']))) {
+            sendResponse(false, null, null, 'Ad gerekli');
+        }
+        
+        if (!isset($input['last_name']) || empty(trim($input['last_name']))) {
+            sendResponse(false, null, null, 'Soyad gerekli');
+        }
+        
+        $email = sanitizeInput(trim($input['email']), 'email');
+        $password = $input['password'];
+        $first_name = sanitizeInput(trim($input['first_name']), 'string');
+        $last_name = sanitizeInput(trim($input['last_name']), 'string');
+        
+        // Şifre validasyonu
+        $passwordValidation = validatePassword($password);
+        if (!$passwordValidation['valid']) {
+            sendResponse(false, null, null, $passwordValidation['message']);
+        }
+        
+        // Email doğrulanmış mı kontrol et
+        $temp_codes_file = __DIR__ . '/../system/temp_verification_codes.json';
+        if (!file_exists($temp_codes_file)) {
+            sendResponse(false, null, null, 'E-posta doğrulanmamış. Lütfen önce e-posta doğrulaması yapın.');
+        }
+        
+        $temp_codes = json_decode(file_get_contents($temp_codes_file), true) ?? [];
+        
+        if (!isset($temp_codes[$email]) || !isset($temp_codes[$email]['verified']) || !$temp_codes[$email]['verified']) {
+            sendResponse(false, null, null, 'E-posta doğrulanmamış. Lütfen önce e-posta doğrulaması yapın.');
         }
         
         // Kullanıcıyı oluştur
@@ -217,9 +237,15 @@ try {
             $db->exec("ALTER TABLE system_users ADD COLUMN phone_verified INTEGER DEFAULT 0");
         }
         
-        // Kullanıcıyı kaydet
-        $password_hash = $code_data['password_hash'];
+        // Şifreyi hashle
+        $password_hash = password_hash($password, PASSWORD_BCRYPT);
+        if ($password_hash === false) {
+            $db->close();
+            error_log("Register Step 3 - Password hash failed for email: $email");
+            sendResponse(false, null, null, 'Şifre işleme hatası. Lütfen tekrar deneyin.');
+        }
         
+        // Kullanıcıyı kaydet
         $insert_stmt = $db->prepare("INSERT INTO system_users (email, password_hash, first_name, last_name, email_verified) VALUES (?, ?, ?, ?, 1)");
         $insert_stmt->bindValue(1, $email, SQLITE3_TEXT);
         $insert_stmt->bindValue(2, $password_hash, SQLITE3_TEXT);
@@ -229,7 +255,13 @@ try {
         if (!$insert_stmt->execute()) {
             $error_msg = $db->lastErrorMsg();
             $db->close();
-            error_log("Register Step 2 - Insert failed: $error_msg");
+            error_log("Register Step 3 - Insert failed: $error_msg");
+            
+            // Eğer email zaten kayıtlıysa
+            if (strpos($error_msg, 'UNIQUE constraint') !== false || strpos($error_msg, 'UNIQUE') !== false) {
+                sendResponse(false, null, null, 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.');
+            }
+            
             sendResponse(false, null, null, 'Kayıt işlemi başarısız oldu. Lütfen tekrar deneyin.');
         }
         
@@ -254,8 +286,8 @@ try {
         ], 'Kayıt başarılı!');
     }
     
-    // Step 3: İsteğe bağlı bilgileri güncelle
-    if ($step === '3') {
+    // Step 4: İsteğe bağlı bilgileri güncelle
+    if ($step === '4') {
         // Authentication gerekli
         require_once __DIR__ . '/auth_middleware.php';
         $currentUser = requireAuth(true);
@@ -329,8 +361,61 @@ function generateVerificationCode() {
 
 function sendVerificationEmail($email, $code) {
     try {
-        require_once __DIR__ . '/../templates/functions/communication.php';
-        return send_email($email, 'UniPanel - E-posta Doğrulama Kodu', "Doğrulama kodunuz: $code\n\nBu kodu kullanarak hesabınızı doğrulayabilirsiniz.");
+        // SMTP ayarlarını yükle
+        $credentials = require __DIR__ . '/../config/credentials.php';
+        $smtp = $credentials['smtp'] ?? [];
+        
+        if (empty($smtp['host']) || empty($smtp['username']) || empty($smtp['password'])) {
+            error_log("SMTP ayarları eksik");
+            return false;
+        }
+        
+        // PHPMailer kullan (eğer yüklüyse) veya basit mail() fonksiyonu
+        if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = $smtp['host'];
+            $mail->SMTPAuth = true;
+            $mail->Username = $smtp['username'];
+            $mail->Password = $smtp['password'];
+            $mail->SMTPSecure = $smtp['encryption'] ?? 'tls';
+            $mail->Port = $smtp['port'] ?? 587;
+            $mail->CharSet = 'UTF-8';
+            
+            $mail->setFrom($smtp['from_email'] ?? $smtp['username'], $smtp['from_name'] ?? 'UniPanel');
+            $mail->addAddress($email);
+            $mail->isHTML(true);
+            
+            $mail->Subject = 'UniPanel - E-posta Doğrulama Kodu';
+            $mail->Body = "
+            <html>
+            <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                    <h2 style='color: #667eea;'>UniPanel - E-posta Doğrulama Kodu</h2>
+                    <p>Merhaba,</p>
+                    <p>Hesap oluşturma işleminiz için doğrulama kodunuz:</p>
+                    <div style='background-color: #f8f9fa; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;'>
+                        <h1 style='color: #667eea; font-size: 36px; margin: 0; letter-spacing: 4px;'>$code</h1>
+                    </div>
+                    <p>Bu kodu kullanarak hesabınızı doğrulayabilirsiniz.</p>
+                    <p>Kod 1 saat geçerlidir.</p>
+                    <p style='color: #666; font-size: 12px; margin-top: 30px;'>Bu e-postayı siz talep etmediyseniz, lütfen görmezden gelin.</p>
+                </div>
+            </body>
+            </html>
+            ";
+            $mail->AltBody = "Doğrulama kodunuz: $code\n\nBu kodu kullanarak hesabınızı doğrulayabilirsiniz.\n\nKod 1 saat geçerlidir.";
+            
+            return $mail->send();
+        } else {
+            // Basit mail() fonksiyonu kullan
+            $subject = 'UniPanel - E-posta Doğrulama Kodu';
+            $message = "Doğrulama kodunuz: $code\n\nBu kodu kullanarak hesabınızı doğrulayabilirsiniz.\n\nKod 1 saat geçerlidir.";
+            $headers = "From: " . ($smtp['from_email'] ?? $smtp['username']) . "\r\n";
+            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            
+            return mail($email, $subject, $message, $headers);
+        }
     } catch (Exception $e) {
         error_log("Email gönderme hatası: " . $e->getMessage());
         return false;
