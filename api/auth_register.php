@@ -238,12 +238,18 @@ try {
     }
     
     // Email kontrolü
-    $check_stmt = $db->prepare("SELECT id FROM system_users WHERE email = ?");
+    $check_stmt = $db->prepare("SELECT id, email_verified FROM system_users WHERE email = ?");
     $check_stmt->bindValue(1, $email, SQLITE3_TEXT);
     $result = $check_stmt->execute();
-    if ($result->fetchArray()) {
+    $existingUser = $result->fetchArray(SQLITE3_ASSOC);
+    if ($existingUser) {
         $db->close();
-        sendResponse(false, null, null, 'Bu email adresi zaten kayıtlı');
+        $isVerified = $existingUser['email_verified'] ?? 0;
+        if ($isVerified) {
+            sendResponse(false, null, null, 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.');
+        } else {
+            sendResponse(false, null, null, 'Bu e-posta adresi zaten kayıtlı ancak henüz doğrulanmamış. Lütfen e-posta adresinizi kontrol edin veya farklı bir e-posta kullanın.');
+        }
     }
     
     // Student ID kontrolü (varsa)
@@ -259,9 +265,21 @@ try {
     
     // Şifreyi hashle
     $password_hash = password_hash($password, PASSWORD_BCRYPT);
+    if ($password_hash === false) {
+        $db->close();
+        error_log("Register - Password hash failed for email: $email");
+        sendResponse(false, null, null, 'Şifre işleme hatası. Lütfen tekrar deneyin.');
+    }
     
     // Kullanıcıyı kaydet
     $insert_stmt = $db->prepare("INSERT INTO system_users (email, student_id, password_hash, first_name, last_name, phone_number, university, department, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    if (!$insert_stmt) {
+        $error_msg = $db->lastErrorMsg();
+        $db->close();
+        error_log("Register - Prepare failed: $error_msg");
+        sendResponse(false, null, null, 'Kayıt işlemi başlatılamadı. Lütfen tekrar deneyin.');
+    }
+    
     $insert_stmt->bindValue(1, $email, SQLITE3_TEXT);
     $insert_stmt->bindValue(2, $student_id, SQLITE3_TEXT);
     $insert_stmt->bindValue(3, $password_hash, SQLITE3_TEXT);
@@ -271,20 +289,142 @@ try {
     $insert_stmt->bindValue(7, $university, SQLITE3_TEXT);
     $insert_stmt->bindValue(8, $department, SQLITE3_TEXT);
     $insert_stmt->bindValue(9, $emailVerified ? 1 : 0, SQLITE3_INTEGER);
-    $insert_stmt->execute();
+    
+    $execute_result = $insert_stmt->execute();
+    if (!$execute_result) {
+        $error_msg = $db->lastErrorMsg();
+        $insert_stmt->close();
+        $db->close();
+        error_log("Register - Execute failed: $error_msg for email: $email");
+        
+        // Eğer email zaten kayıtlıysa (UNIQUE constraint violation)
+        if (strpos($error_msg, 'UNIQUE constraint') !== false || strpos($error_msg, 'UNIQUE') !== false) {
+            sendResponse(false, null, null, 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.');
+        }
+        
+        sendResponse(false, null, null, 'Kayıt işlemi başarısız oldu. Lütfen tekrar deneyin.');
+    }
     
     $user_id = $db->lastInsertRowID();
+    $insert_stmt->close();
+    
+    if (!$user_id || $user_id == 0) {
+        $db->close();
+        error_log("Register - lastInsertRowID failed for email: $email");
+        sendResponse(false, null, null, 'Kullanıcı kaydedildi ancak ID alınamadı. Lütfen giriş yapmayı deneyin.');
+    }
+    
+    // Son giriş zamanını güncelle
+    try {
+        $update_stmt = $db->prepare("UPDATE system_users SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
+        $update_stmt->bindValue(1, $user_id, SQLITE3_INTEGER);
+        @$update_stmt->execute();
+    } catch (Exception $e) {
+        error_log("Failed to update last_login: " . $e->getMessage());
+    }
+    
+    // Otomatik giriş için token oluştur
+    $token = null;
+    $token_hash = null;
+    try {
+        // Token oluştur (güvenli random) ve hash'le
+        $token = bin2hex(random_bytes(32));
+        $token_hash = hash('sha256', $token);
+        $expires_at = date('Y-m-d H:i:s', strtotime('+30 days'));
+        $created_at = date('Y-m-d H:i:s');
+        
+        // api_tokens tablosunun varlığını kontrol et ve yoksa oluştur
+        $table_check = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='api_tokens'");
+        if (!$table_check || !$table_check->fetchArray()) {
+            $create_table = "CREATE TABLE IF NOT EXISTS api_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                token_hash TEXT,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME NOT NULL,
+                last_used_at DATETIME DEFAULT NULL,
+                revoked_at DATETIME DEFAULT NULL,
+                FOREIGN KEY (user_id) REFERENCES system_users(id) ON DELETE CASCADE
+            )";
+            $db->exec($create_table);
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id ON api_tokens(user_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_api_tokens_expires_at ON api_tokens(expires_at)");
+        }
+        
+        // token_hash kolonu yoksa ekle (migration)
+        try {
+            $db->exec("ALTER TABLE api_tokens ADD COLUMN token_hash TEXT");
+        } catch (Exception $e) {
+            // Kolon zaten varsa hata vermez
+        }
+        
+        // Yeni token'ı ekle
+        $token_stmt = $db->prepare("INSERT INTO api_tokens (user_id, token, token_hash, expires_at, created_at, last_used_at) VALUES (?, ?, ?, ?, ?, datetime('now'))");
+        if ($token_stmt) {
+            $token_stmt->bindValue(1, $user_id, SQLITE3_INTEGER);
+            $token_stmt->bindValue(2, $token, SQLITE3_TEXT);
+            $token_stmt->bindValue(3, $token_hash, SQLITE3_TEXT);
+            $token_stmt->bindValue(4, $expires_at, SQLITE3_TEXT);
+            $token_stmt->bindValue(5, $created_at, SQLITE3_TEXT);
+            @$token_stmt->execute();
+        }
+    } catch (Exception $e) {
+        // Token oluşturma hatası kritik değil, kayıt başarılı
+        error_log("Token creation error during registration: " . $e->getMessage());
+    }
+    
     $db->close();
     
+    // Başarılı yanıt gönder - token ile birlikte
+    http_response_code(200);
     sendResponse(true, [
         'user_id' => (int)$user_id,
         'email' => $email,
         'first_name' => $first_name,
-        'last_name' => $last_name
-    ], 'Kayıt başarılı!');
+        'last_name' => $last_name,
+        'full_name' => $first_name . ' ' . $last_name,
+        'token' => $token, // Otomatik giriş için token
+        'user' => [
+            'id' => (int)$user_id,
+            'email' => $email,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'full_name' => $first_name . ' ' . $last_name,
+            'student_id' => $student_id,
+            'phone_number' => $phone_number,
+            'university' => $university,
+            'department' => $department,
+            'email_verified' => $emailVerified
+        ]
+    ], 'Kayıt başarılı! Hoş geldiniz, otomatik olarak giriş yapıldı.');
     
 } catch (Exception $e) {
-    $response = sendSecureErrorResponse('Kayıt işlemi sırasında bir hata oluştu', $e);
-    sendResponse($response['success'], $response['data'], $response['message'], $response['error']);
+    error_log("Register - Exception: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
+    
+    // Database bağlantısını kapat (varsa)
+    if (isset($db) && $db) {
+        @$db->close();
+    }
+    if (isset($verify_db) && $verify_db) {
+        @$verify_db->close();
+    }
+    
+    // Güvenli hata mesajı gönder
+    $error_message = 'Kayıt işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+    
+    // Eğer email zaten kayıtlıysa özel mesaj
+    if (strpos($e->getMessage(), 'UNIQUE') !== false || strpos($e->getMessage(), 'already exists') !== false) {
+        $error_message = 'Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.';
+    }
+    
+    // Veritabanı hatası kontrolü
+    if (strpos($e->getMessage(), 'database') !== false || strpos($e->getMessage(), 'SQLite') !== false) {
+        $error_message = 'Veritabanı hatası oluştu. Lütfen daha sonra tekrar deneyin.';
+    }
+    
+    http_response_code(500);
+    sendResponse(false, null, null, $error_message);
 }
 

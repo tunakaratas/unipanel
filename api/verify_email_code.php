@@ -92,15 +92,38 @@ try {
         sendResponse(false, null, null, 'Doğrulama kodu süresi dolmuş. Lütfen yeni kod isteyin.');
     }
     
-    // Kodu kullanıldı olarak işaretleme - kayıt işlemi sırasında işaretlenecek
-    // Bu sayede aynı kod hem doğrulama hem de kayıt için kullanılabilir
+    // Kodu kullanıldı olarak işaretle (kayıt işlemi sırasında tekrar kontrol edilecek)
+    try {
+        $mark_used_stmt = $db->prepare("UPDATE email_verification_codes SET used = 1 WHERE id = ?");
+        if ($mark_used_stmt) {
+            $mark_used_stmt->bindValue(1, $row['id'], SQLITE3_INTEGER);
+            @$mark_used_stmt->execute();
+        }
+    } catch (Exception $e) {
+        // Hata olsa bile devam et
+        error_log("Failed to mark code as used: " . $e->getMessage());
+    }
     
     $db->close();
     
-    sendResponse(true, ['email' => $email, 'verified' => true], 'E-posta doğrulandı');
+    sendResponse(true, ['email' => $email, 'verified' => true], 'E-posta başarıyla doğrulandı! Artık kayıt olabilirsiniz.');
     
 } catch (Exception $e) {
-    $response = sendSecureErrorResponse('Doğrulama kodu kontrol edilirken bir hata oluştu', $e);
-    sendResponse($response['success'], $response['data'], $response['message'], $response['error']);
+    error_log("verify_email_code.php error: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
+    
+    // Database bağlantısını kapat (varsa)
+    if (isset($db) && $db) {
+        @$db->close();
+    }
+    
+    // Güvenli hata mesajı
+    $error_message = 'Doğrulama kodu kontrol edilirken bir hata oluştu. Lütfen tekrar deneyin.';
+    
+    // Veritabanı hatası kontrolü
+    if (strpos($e->getMessage(), 'database') !== false || strpos($e->getMessage(), 'SQLite') !== false) {
+        $error_message = 'Veritabanı hatası oluştu. Lütfen daha sonra tekrar deneyin.';
+    }
+    
+    sendResponse(false, null, null, $error_message);
 }
 
