@@ -2099,22 +2099,22 @@ function send_sms_netgsm($to, $message, $username, $password, $msgheader = '') {
             return ['success' => false, 'error' => 'cURL başlatılamadı'];
         }
         
-        // Maksimum optimizasyon ayarları - Login için daha kısa timeout
+        // Optimize edilmiş timeout ayarları - Login için hızlı yanıt
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15); // 15 saniye timeout (login için yeterli)
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // 5 saniye connection timeout (login için yeterli)
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10); // 10 saniye timeout (login için yeterli)
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // 5 saniye connection timeout
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // SSL doğrulama (bazı sunucularda sorun çıkarabilir)
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_USERAGENT, 'UniPanel/1.0');
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_TCP_KEEPALIVE, 1);
-        curl_setopt($ch, CURLOPT_TCP_KEEPIDLE, 60);
-        curl_setopt($ch, CURLOPT_TCP_KEEPINTVL, 10);
+        curl_setopt($ch, CURLOPT_TCP_KEEPIDLE, 30);
+        curl_setopt($ch, CURLOPT_TCP_KEEPINTVL, 5);
         
-        // Maksimum optimizasyon - 10 deneme (KESİN GİTMESİ İÇİN)
-        $max_retries = 10;
+        // Optimize edilmiş retry - 3 deneme yeterli
+        $max_retries = 3;
         $response = false;
         $curl_error = '';
         $http_code = 0;
@@ -2128,19 +2128,19 @@ function send_sms_netgsm($to, $message, $username, $password, $msgheader = '') {
         
         for ($retry = 0; $retry < $max_retries; $retry++) {
             if ($retry > 0) {
-                // Agresif retry: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 saniye (maksimum başarı için)
-                $delay = min($retry, 10);
+                // Kısa retry delay: 1, 2 saniye
+                $delay = $retry;
                 sleep($delay);
                 
-                // Her retry'da yeni connection (connection pool problemi olabilir)
+                // Her retry'da yeni connection
                 curl_close($ch);
                 $ch = curl_init($url_with_params);
                 if ($ch === false) {
                     continue;
                 }
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 90); // Daha uzun timeout
-                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 20); // Daha uzun connection timeout
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
@@ -2202,50 +2202,11 @@ function send_sms_netgsm($to, $message, $username, $password, $msgheader = '') {
             $final_response = trim($response);
         }
         
-        // Eğer hiç response yoksa - TÜM DENEMELERİ YENİDEN YAP
+        // Eğer hiç response yoksa hata döndür
         if ($final_response === false || empty($final_response)) {
             $error_msg = 'Bağlantı hatası: ' . ($curl_error ?: 'Yanıt alınamadı');
             tpl_error_log('NetGSM cURL Error: ' . $curl_error . ' (Retries: ' . $retry . ', HTTP: ' . $http_code . ')');
-            
-            // Son bir şans daha - 5 ekstra deneme
-            if ($retry >= $max_retries) {
-                for ($extra_retry = 0; $extra_retry < 5; $extra_retry++) {
-                    $extra_delay = ($extra_retry + 1) * 3; // 3, 6, 9, 12, 15 saniye
-                    sleep($extra_delay);
-                    
-                    // Yeni connection
-                    $ch_extra = curl_init($url_with_params);
-                    if ($ch_extra !== false) {
-                        curl_setopt($ch_extra, CURLOPT_RETURNTRANSFER, true);
-                        curl_setopt($ch_extra, CURLOPT_TIMEOUT, 90);
-                        curl_setopt($ch_extra, CURLOPT_CONNECTTIMEOUT, 20);
-                        curl_setopt($ch_extra, CURLOPT_FOLLOWLOCATION, true);
-                        curl_setopt($ch_extra, CURLOPT_SSL_VERIFYPEER, false);
-                        curl_setopt($ch_extra, CURLOPT_SSL_VERIFYHOST, false);
-                        curl_setopt($ch_extra, CURLOPT_USERAGENT, 'UniPanel/1.0');
-                        if ($netgsm_ip !== 'api.netgsm.com.tr' && filter_var($netgsm_ip, FILTER_VALIDATE_IP)) {
-                            curl_setopt($ch_extra, CURLOPT_RESOLVE, ["api.netgsm.com.tr:80:$netgsm_ip"]);
-                        }
-                        
-                        $extra_response = curl_exec($ch_extra);
-                        $extra_http_code = curl_getinfo($ch_extra, CURLINFO_HTTP_CODE);
-                        curl_close($ch_extra);
-                        
-                        if ($extra_response !== false && $extra_http_code == 200) {
-                            $extra_response_trimmed = trim($extra_response);
-                            if (substr($extra_response_trimmed, 0, 2) === '00') {
-                                $final_response = $extra_response_trimmed;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Hala response yoksa hata döndür
-            if ($final_response === false || empty($final_response)) {
-                return ['success' => false, 'error' => $error_msg . " (Tüm " . ($max_retries + 5) . " deneme başarısız)", 'retryable' => true];
-            }
+            return ['success' => false, 'error' => $error_msg . " (Tüm " . $max_retries . " deneme başarısız)", 'retryable' => true];
         }
         
         // Response validation - KESİN KONTROL (boşluk, yeni satır, vb. temizle)
