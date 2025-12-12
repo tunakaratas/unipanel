@@ -49,6 +49,21 @@ use UniPanel\Core\Cache;
 // Cache instance (global değişken olarak)
 $publicCache = Cache::getInstance(__DIR__ . '/../system/cache');
 
+/**
+ * University filter helpers (shared behavior with api/events.php and api/universities.php)
+ */
+function normalize_university_id($value) {
+    $value = trim((string)$value);
+    if ($value === '') {
+        return '';
+    }
+    // Türkçe karakter desteği için mb_strtolower kullan
+    $normalized = mb_strtolower($value, 'UTF-8');
+    // Boşluk, tire ve alt çizgi karakterlerini kaldır
+    $normalized = str_replace([' ', '-', '_'], '', $normalized);
+    return $normalized;
+}
+
 // Public index.php'deki get_all_communities fonksiyonunu kopyala
 function get_all_communities($useCache = true) {
     global $publicCache;
@@ -122,23 +137,10 @@ function get_all_communities($useCache = true) {
             }
             
             // Campaigns tablosunu oluştur ve kontrol et
-            $community_db->exec("CREATE TABLE IF NOT EXISTS campaigns (
-                id INTEGER PRIMARY KEY,
-                club_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT,
-                offer_text TEXT NOT NULL,
-                partner_name TEXT,
-                discount_percentage INTEGER,
-                image_path TEXT,
-                start_date TEXT,
-                end_date TEXT,
-                is_active INTEGER DEFAULT 1,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )");
+            // Campaigns tablosunu kontrol et (CREATE yok - sadece okuma)
+
             
-            $campaign_result = $community_db->querySingle("SELECT COUNT(*) FROM campaigns WHERE club_id = 1 AND is_active = 1");
+            $campaign_result = @$community_db->querySingle("SELECT COUNT(*) FROM campaigns WHERE club_id = 1 AND is_active = 1");
             if ($campaign_result !== false) {
                 $campaign_count = (int)$campaign_result;
             }
@@ -334,189 +336,151 @@ try {
         }
         // HTML encoding koruması
         $university_id = htmlspecialchars($university_id, ENT_QUOTES, 'UTF-8');
-        $all_communities = get_all_communities();
-        
-        // Üniversiteye göre filtrele
-        $filtered_communities = [];
-        foreach ($all_communities as $community) {
-            $db_path = $communities_dir . '/' . $community['id'] . '/unipanel.sqlite';
-            if (file_exists($db_path)) {
-                try {
-                    // Connection pool kullan (10k kullanıcı için kritik)
-                    $connResult = ConnectionPool::getConnection($db_path, true);
-                    if (!$connResult) {
-                        continue;
-                    }
-                    $db = $connResult['db'];
-                    $poolId = $connResult['pool_id'];
-                    
-                    $settings_query = $db->query("SELECT setting_key, setting_value FROM settings WHERE club_id = 1");
-                    $settings = [];
-                    while ($row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
-                        $settings[$row['setting_key']] = $row['setting_value'];
-                    }
-                    
-                    // Bağlantıyı pool'a geri ver
-                    ConnectionPool::releaseConnection($db_path, $poolId, true);
-                    
-                    $community_university = strtolower(str_replace([' ', '-', '_'], '', $settings['university'] ?? $settings['organization'] ?? ''));
-                    if ($community_university === $university_id) {
-                        $filtered_communities[] = $community;
-                    }
-                } catch (Exception $e) {
-                    // Hata durumunda devam et
-                }
-            }
-        }
-        
-        // Formatla ve gönder
+        $all_communities = [];
+        $community_folders = glob($communities_dir . '/*', GLOB_ONLYDIR);
         $formatted_communities = [];
-        foreach ($filtered_communities as $community) {
-            $db_path = $communities_dir . '/' . $community['id'] . '/unipanel.sqlite';
+        
+        foreach ($community_folders as $folder_path) {
+            $community_id = basename($folder_path);
+            if ($community_id === '.' || $community_id === '..' || in_array($community_id, ['assets', 'public', 'templates', 'system', 'docs'])) continue;
+
+            $db_path = $folder_path . '/unipanel.sqlite';
+            if (!file_exists($db_path)) {
+                continue;
+            }
             
-            $logo_path = null;
-            $image_url = null;
-            $categories = [];
-            $tags = [];
-            $is_verified = false;
-            $contact_email = null;
-            $website = null;
-            $social_links = null;
-            $university = null;
-            
-            if (file_exists($db_path)) {
-                try {
-                    // Connection pool kullan (10k kullanıcı için kritik)
-                    $connResult = ConnectionPool::getConnection($db_path, true);
-                    if (!$connResult) {
-                        continue;
-                    }
-                    $db = $connResult['db'];
-                    $poolId = $connResult['pool_id'];
-                    
-                    $settings_query = $db->query("SELECT setting_key, setting_value FROM settings WHERE club_id = 1");
-                    $settings = [];
+            try {
+                // Connection pool kullan
+                $connResult = ConnectionPool::getConnection($db_path, true);
+                if (!$connResult) {
+                    continue;
+                }
+                $db = $connResult['db'];
+                $poolId = $connResult['pool_id'];
+                
+                // Settings tablosunu kontrol et
+                $settings_query = $db->query("SELECT setting_key, setting_value FROM settings WHERE club_id = 1");
+                $settings = [];
+                if ($settings_query) {
                     while ($row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
                         $settings[$row['setting_key']] = $row['setting_value'];
                     }
-                    
-                    // University bilgisini al
-                    $university = $settings['university'] ?? $settings['organization'] ?? null;
-                    
-                    if (!empty($settings['club_logo'])) {
-                        $logo_path = '/communities/' . $community['id'] . '/' . $settings['club_logo'];
-                    }
-                    if (!empty($settings['club_image'])) {
-                        $image_url = '/communities/' . $community['id'] . '/' . $settings['club_image'];
-                    }
-                    // Kategorileri array olarak al (JSON veya comma-separated)
-                    $category = $settings['club_category'] ?? null;
-                    if (!empty($category)) {
-                        // JSON array kontrolü
-                        $decoded = json_decode($category, true);
-                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                            $categories = array_filter($decoded, function($cat) {
-                                return $cat !== 'other' && !empty($cat);
-                            });
-                        } else {
-                            // Comma-separated veya tek kategori
-                            $cats = explode(',', $category);
-                            foreach ($cats as $cat) {
-                                $cat = trim($cat);
-                                if ($cat !== 'other' && !empty($cat)) {
-                                    $categories[] = $cat;
-                                }
-                            }
-                        }
-                    }
-                    // Max 3 kategori
-                    $categories = array_slice($categories, 0, 3);
-                    $tags = !empty($settings['club_tags']) ? explode(',', $settings['club_tags']) : [];
-                    $is_verified = isset($settings['is_verified']) ? (bool)$settings['is_verified'] : false;
-                    
-                    // Hassas bilgiler sadece authenticated kullanıcılar için
-                    if ($currentUser) {
-                        $contact_email = $settings['contact_email'] ?? null;
-                        $website = $settings['website'] ?? null;
-                        
-                        if (!empty($settings['instagram']) || !empty($settings['twitter']) || !empty($settings['linkedin']) || !empty($settings['facebook'])) {
-                            $social_links = [
-                                'instagram' => $settings['instagram'] ?? null,
-                                'twitter' => $settings['twitter'] ?? null,
-                                'linkedin' => $settings['linkedin'] ?? null,
-                                'facebook' => $settings['facebook'] ?? null
-                            ];
-                        }
+                }
+                
+                // Üniversite kontrolü
+                $community_university_name = $settings['university'] ?? $settings['organization'] ?? '';
+                $community_university_id = normalize_university_id($community_university_name);
+                
+                // Eğer üniversite eşleşmiyorsa geç
+                if ($community_university_id !== $university_id) {
+                     ConnectionPool::releaseConnection($db_path, $poolId, true);
+                     continue;
+                }
+                
+                // Eşleşti! Şimdi diğer bilgileri topla
+                
+                // Üye sayısı
+                $member_count = 0;
+                $member_result = $db->querySingle("SELECT COUNT(*) FROM members WHERE club_id = 1");
+                if ($member_result !== false) $member_count = (int)$member_result;
+                
+                // Etkinlik sayısı
+                $event_count = 0;
+                $event_result = $db->querySingle("SELECT COUNT(*) FROM events WHERE club_id = 1");
+                if ($event_result !== false) $event_count = (int)$event_result;
+                
+                // Kampanya sayısı
+                $campaign_count = 0;
+                $db->exec("CREATE TABLE IF NOT EXISTS campaigns (id INTEGER PRIMARY KEY, club_id INTEGER NOT NULL, title TEXT NOT NULL, description TEXT, offer_text TEXT NOT NULL, partner_name TEXT, discount_percentage INTEGER, image_path TEXT, start_date TEXT, end_date TEXT, is_active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+                $campaign_result = $db->querySingle("SELECT COUNT(*) FROM campaigns WHERE club_id = 1 AND is_active = 1");
+                if ($campaign_result !== false) $campaign_count = (int)$campaign_result;
+                
+                // Board member sayısı
+                $board_count = 0;
+                $board_result = $db->querySingle("SELECT COUNT(*) FROM board_members WHERE club_id = 1");
+                if ($board_result !== false) $board_count = (int)$board_result;
+
+                // Diğer detaylar
+                $logo_path = null;
+                if (!empty($settings['club_logo'])) {
+                    $logo_path = '/communities/' . $community_id . '/' . $settings['club_logo'];
+                }
+                
+                $image_url = null;
+                if (!empty($settings['club_image'])) {
+                    $image_url = '/communities/' . $community_id . '/' . $settings['club_image'];
+                }
+                
+                $categories = [];
+                $category = $settings['club_category'] ?? null;
+                if (!empty($category)) {
+                    $decoded = json_decode($category, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $categories = array_filter($decoded, function($cat) { return $cat !== 'other' && !empty($cat); });
                     } else {
-                        $contact_email = null;
-                        $website = null;
-                        $social_links = null;
+                        $cats = explode(',', $category);
+                        foreach ($cats as $cat) {
+                            $cat = trim($cat);
+                            if ($cat !== 'other' && !empty($cat)) $categories[] = $cat;
+                        }
                     }
-                    
-                    // Bağlantıyı pool'a geri ver
-                    ConnectionPool::releaseConnection($db_path, $poolId, true);
-                } catch (Exception $e) {
-                    // Hata durumunda bağlantıyı release et
-                    if (isset($poolId)) {
-                        ConnectionPool::releaseConnection($db_path, $poolId, true);
-                    }
-                    error_log("Communities API error: " . $e->getMessage());
-                    // Hata durumunda devam et
                 }
-            }
-            
-            // Board member count
-            $board_count = 0;
-            if (file_exists($db_path)) {
-                try {
-                    // Connection pool kullan (10k kullanıcı için kritik)
-                    $connResult = ConnectionPool::getConnection($db_path, true);
-                    if ($connResult) {
-                        $db = $connResult['db'];
-                        $poolId = $connResult['pool_id'];
-                        $board_count = $db->querySingle("SELECT COUNT(*) FROM board_members WHERE club_id = 1") ?: 0;
-                        // Bağlantıyı pool'a geri ver
-                        ConnectionPool::releaseConnection($db_path, $poolId, true);
-                    }
-                } catch (Exception $e) {
-                    error_log("Board count error: " . $e->getMessage());
+                $categories = array_slice($categories, 0, 3);
+                
+                $tags = !empty($settings['club_tags']) ? explode(',', $settings['club_tags']) : [];
+                $is_verified = isset($settings['is_verified']) ? (bool)$settings['is_verified'] : false;
+                
+                // Contact info
+                $contact_email = $settings['contact_email'] ?? null;
+                $website = $settings['website'] ?? null;
+                $social_links = null;
+                if (!empty($settings['instagram']) || !empty($settings['twitter']) || !empty($settings['linkedin']) || !empty($settings['facebook'])) {
+                    $social_links = [
+                        'instagram' => $settings['instagram'] ?? null,
+                        'twitter' => $settings['twitter'] ?? null,
+                        'linkedin' => $settings['linkedin'] ?? null,
+                        'facebook' => $settings['facebook'] ?? null
+                    ];
                 }
+                
+                // URLs
+                $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'foursoftware.com.tr');
+                $baseUrl = $protocol . '://' . $host;
+                $qr_deep_link = 'unifour://community/' . urlencode($community_id);
+                $qr_code_url = $baseUrl . '/api/qr_code.php?type=community&id=' . urlencode($community_id);
+                
+                $formatted_communities[] = [
+                    'id' => $community_id,
+                    'name' => $settings['club_name'] ?? ucwords(str_replace('_', ' ', $community_id)),
+                    'description' => $settings['club_description'] ?? '',
+                    'short_description' => null,
+                    'member_count' => $member_count,
+                    'event_count' => $event_count,
+                    'campaign_count' => $campaign_count,
+                    'board_member_count' => $board_count,
+                    'image_url' => $image_url,
+                    'logo_path' => $logo_path,
+                    'categories' => $categories,
+                    'tags' => $tags,
+                    'is_verified' => $is_verified,
+                    'created_at' => date('Y-m-d\TH:i:s\Z'),
+                    'contact_email' => $contact_email,
+                    'website' => $website,
+                    'social_links' => $social_links,
+                    'status' => 'active',
+                    'university' => $community_university_name,
+                    'qr_deep_link' => $qr_deep_link,
+                    'qr_code_url' => $qr_code_url
+                ];
+
+                ConnectionPool::releaseConnection($db_path, $poolId, true);
+                
+            } catch (Exception $e) {
+                if (isset($poolId) && isset($db_path)) ConnectionPool::releaseConnection($db_path, $poolId, true);
+                error_log("Communities API Filter Error: " . $e->getMessage());
+                continue;
             }
-            
-            // Base URL
-            $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'foursoftware.com.tr');
-            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-            $baseUrl = $protocol . '://' . $host;
-            
-            // QR kod deep link
-            $qr_deep_link = 'unifour://community/' . urlencode($community['id']);
-            
-            // QR kod API URL'i
-            $qr_code_url = $baseUrl . '/api/qr_code.php?type=community&id=' . urlencode($community['id']);
-            
-            $formatted_communities[] = [
-                'id' => $community['id'],
-                'name' => $community['name'],
-                'description' => $community['description'] ?? '',
-                'short_description' => null,
-                'member_count' => (int)($community['member_count'] ?? 0),
-                'event_count' => (int)($community['event_count'] ?? 0),
-                'campaign_count' => (int)($community['campaign_count'] ?? 0),
-                'board_member_count' => (int)$board_count,
-                'image_url' => $image_url,
-                'logo_path' => $logo_path,
-                'categories' => $categories, // Array olarak döndür
-                'tags' => $tags,
-                'is_verified' => $is_verified,
-                'created_at' => date('Y-m-d\TH:i:s\Z'),
-                'contact_email' => $contact_email,
-                'website' => $website,
-                'social_links' => $social_links,
-                'status' => 'active',
-                'university' => $university,
-                'qr_deep_link' => $qr_deep_link,
-                'qr_code_url' => $qr_code_url
-            ];
         }
         
         sendResponse(true, $formatted_communities);

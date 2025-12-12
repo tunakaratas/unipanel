@@ -44,6 +44,43 @@ use UniPanel\Core\Cache;
 
 $publicCache = Cache::getInstance(__DIR__ . '/../system/cache');
 
+/**
+ * University filter helpers (shared behavior with api/communities.php and api/universities.php)
+ */
+function normalize_university_id($value) {
+    $value = trim((string)$value);
+    if ($value === '') {
+        return '';
+    }
+    // Türkçe karakter desteği için mb_strtolower kullan
+    $normalized = mb_strtolower($value, 'UTF-8');
+    // Boşluk, tire ve alt çizgi karakterlerini kaldır
+    $normalized = str_replace([' ', '-', '_'], '', $normalized);
+    return $normalized;
+}
+
+function get_requested_university_id() {
+    // Accept both university_id (preferred) and university (name) for compatibility.
+    $raw = '';
+    if (isset($_GET['university_id'])) {
+        $raw = (string)$_GET['university_id'];
+    } elseif (isset($_GET['university'])) {
+        $raw = (string)$_GET['university'];
+    }
+
+    $raw = trim($raw);
+    if ($raw === '' || $raw === 'all') {
+        return '';
+    }
+
+    $raw = basename($raw);
+    if (strpos($raw, '..') !== false || strpos($raw, '/') !== false || strpos($raw, '\\') !== false) {
+        return '';
+    }
+
+    return normalize_university_id($raw);
+}
+
 // get_all_communities fonksiyonunu kopyala
 function get_all_communities($useCache = true) {
     global $publicCache;
@@ -63,7 +100,9 @@ function get_all_communities($useCache = true) {
         if (!file_exists($db_path)) continue;
         try {
             // Connection pool kullan (10k kullanıcı için kritik)
-            $connResult = ConnectionPool::getConnection($db_path, true);
+            // NOT: Bazı DB'ler WAL/shm nedeniyle READONLY modda açılamıyor.
+            // Üniversite filtresi ve listeler için RW açıp sadece SELECT yapıyoruz.
+            $connResult = ConnectionPool::getConnection($db_path, false);
             if (!$connResult) {
                 continue;
             }
@@ -91,7 +130,7 @@ function get_all_communities($useCache = true) {
             ];
             
             // Bağlantıyı pool'a geri ver
-            ConnectionPool::releaseConnection($db_path, $poolId, true);
+            ConnectionPool::releaseConnection($db_path, $poolId, false);
         } catch (Exception $e) { continue; }
     }
     if ($publicCache) $publicCache->set($cacheKey, $communities, 600);
@@ -111,6 +150,7 @@ function sendResponse($success, $data = null, $message = null, $error = null) {
 try {
     $communities_dir = __DIR__ . '/../communities';
     $all_campaigns = [];
+    $requested_university_id = get_requested_university_id();
     
     // Tek bir kampanya detayı isteniyorsa
     if (isset($_GET['id']) && !empty($_GET['id'])) {
@@ -127,7 +167,7 @@ try {
         }
         
         // Connection pool kullan (10k kullanıcı için kritik)
-        $connResult = ConnectionPool::getConnection($db_path, true);
+        $connResult = ConnectionPool::getConnection($db_path, false);
         if (!$connResult) {
             sendResponse(false, null, null, 'Veritabanı bağlantısı kurulamadı.');
         }
@@ -158,7 +198,7 @@ try {
         
         if (!$row) {
             // Bağlantıyı pool'a geri ver
-            ConnectionPool::releaseConnection($db_path, $poolId, true);
+            ConnectionPool::releaseConnection($db_path, $poolId, false);
             sendResponse(false, null, null, 'Kampanya bulunamadı');
         }
         
@@ -227,7 +267,7 @@ try {
         ];
         
         // Bağlantıyı pool'a geri ver
-        ConnectionPool::releaseConnection($db_path, $poolId, true);
+        ConnectionPool::releaseConnection($db_path, $poolId, false);
         sendResponse(true, $campaign);
     }
     
@@ -241,7 +281,7 @@ try {
         }
         
         // Connection pool kullan (10k kullanıcı için kritik)
-        $connResult = ConnectionPool::getConnection($db_path, true);
+        $connResult = ConnectionPool::getConnection($db_path, false);
         if (!$connResult) {
             sendResponse(false, null, null, 'Veritabanı bağlantısı kurulamadı.');
         }
@@ -336,20 +376,23 @@ try {
         }
         
         // Bağlantıyı pool'a geri ver
-        ConnectionPool::releaseConnection($db_path, $poolId, true);
+        ConnectionPool::releaseConnection($db_path, $poolId, false);
     } else {
         // Tüm toplulukların kampanyalarını getir
-        $all_communities = get_all_communities();
+        $community_folders = glob($communities_dir . '/*', GLOB_ONLYDIR);
         
-        foreach ($all_communities as $community) {
-            $db_path = $communities_dir . '/' . $community['id'] . '/unipanel.sqlite';
+        foreach ($community_folders as $folder_path) {
+            $community_id = basename($folder_path);
+            if ($community_id === '.' || $community_id === '..') continue;
+
+            $db_path = $folder_path . '/unipanel.sqlite';
             if (!file_exists($db_path)) {
                 continue;
             }
             
             try {
                 // Connection pool kullan (10k kullanıcı için kritik)
-                $connResult = ConnectionPool::getConnection($db_path, true);
+                $connResult = ConnectionPool::getConnection($db_path, false);
                 if (!$connResult) {
                     continue;
                 }
@@ -387,10 +430,22 @@ try {
                 // Topluluk adı
                 $settings_query = $db->query("SELECT setting_key, setting_value FROM settings WHERE club_id = 1");
                 $settings = [];
-                while ($setting_row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
-                    $settings[$setting_row['setting_key']] = $setting_row['setting_value'];
+                if ($settings_query) {
+                    while ($setting_row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
+                        $settings[$setting_row['setting_key']] = $setting_row['setting_value'];
+                    }
                 }
-                $community_name = $settings['club_name'] ?? $community['id'];
+                $community_name = $settings['club_name'] ?? $community_id;
+
+                // Üniversite filtresi (isteğe bağlı)
+                if ($requested_university_id !== '') {
+                    $community_university_name = $settings['university'] ?? $settings['organization'] ?? '';
+                    $community_university_id = normalize_university_id($community_university_name);
+                    if ($community_university_id === '' || $community_university_id !== $requested_university_id) {
+                        ConnectionPool::releaseConnection($db_path, $poolId, false);
+                        continue;
+                    }
+                }
                 
                 // Kampanyaları çek
                 $query = $db->prepare("SELECT * FROM campaigns WHERE club_id = 1 AND is_active = 1 ORDER BY created_at DESC");
@@ -400,13 +455,13 @@ try {
                     // Image path
                     $image_path = null;
                     if (!empty($row['image_path'])) {
-                        $image_path = '/communities/' . $community['id'] . '/' . $row['image_path'];
+                        $image_path = '/communities/' . $community_id . '/' . $row['image_path'];
                     }
                     
                     // Partner logo
                     $partner_logo = null;
                     if (!empty($row['partner_logo'])) {
-                        $partner_logo = '/communities/' . $community['id'] . '/' . $row['partner_logo'];
+                        $partner_logo = '/communities/' . $community_id . '/' . $row['partner_logo'];
                     }
                     
                     // Discount type
@@ -432,8 +487,9 @@ try {
                         'description' => $row['description'] ?? null,
                         'short_description' => null,
                         'offer_text' => $row['offer_text'] ?? '',
-                        'community_id' => $community['id'],
+                        'community_id' => $community_id,
                         'community_name' => $community_name,
+                        'university' => $settings['university'] ?? $settings['organization'] ?? null,
                         'image_url' => $image_path,
                         'image_path' => $image_path,
                         'discount' => isset($row['discount']) ? (float)$row['discount'] : null,
@@ -455,8 +511,9 @@ try {
                 }
                 
                 // Bağlantıyı pool'a geri ver
-                ConnectionPool::releaseConnection($db_path, $poolId, true);
+                ConnectionPool::releaseConnection($db_path, $poolId, false);
             } catch (Exception $e) {
+                if (isset($poolId) && isset($db_path)) ConnectionPool::releaseConnection($db_path, $poolId, false);
                 continue;
             }
         }
