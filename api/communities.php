@@ -386,6 +386,9 @@ try {
         $log_file = __DIR__ . '/../logs/communities_api_debug.log';
         $log_enabled = true;
         
+        // Hemen error_log'a yaz (log dosyası yazma sorunlarını tespit etmek için)
+        error_log("Communities API: Üniversite filtresi aktif - Requested ID: '{$requested_university_id}' - Log dosyası: '{$log_file}'");
+        
         function write_communities_log($message) {
             global $log_file, $log_enabled;
             if (!$log_enabled) return;
