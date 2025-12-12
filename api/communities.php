@@ -109,6 +109,17 @@ function get_requested_university_id() {
     
     // Debug log (her zaman - sorun tespiti için)
     error_log("Communities API get_requested_university_id: Raw input: '{$raw_input}' -> After decode: '{$raw}' -> Normalized: '{$normalized}'");
+    
+    // Ayrıca log dosyasına da yaz (eğer log aktifse)
+    if (isset($GLOBALS['log_enabled']) && $GLOBALS['log_enabled']) {
+        $log_file = $GLOBALS['log_file'] ?? __DIR__ . '/../logs/communities_api_debug.log';
+        $log_dir = dirname($log_file);
+        if (!is_dir($log_dir)) {
+            @mkdir($log_dir, 0777, true);
+        }
+        $timestamp = date('Y-m-d H:i:s');
+        @file_put_contents($log_file, "[{$timestamp}] get_requested_university_id: Raw input: '{$raw_input}' -> After decode: '{$raw}' -> Normalized: '{$normalized}'\n", FILE_APPEND | LOCK_EX);
+    }
 
     return $normalized;
 }
