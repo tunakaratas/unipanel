@@ -3878,25 +3878,16 @@ foreach ($community_details as $details) {
                                                 </div>
                                                 
                                                 <!-- Alt Butonlar -->
-                                                <div class="grid grid-cols-4 gap-2">
-                                                    <button onclick="openAssignPlanSmsModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
-                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                        </svg>
+                                                <div class="grid grid-cols-3 gap-2">
+                                                    <button onclick="openAssignPlanSmsModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 text-xs flex items-center justify-center">
                                                         Plan & SMS
                                                     </button>
                                                     
-                                                    <button onclick="openAddPresidentModal('<?= htmlspecialchars($community, ENT_QUOTES) ?>', '<?= htmlspecialchars($community_details[$community]['name'] ?? $community, ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($community_details[$community]['president'] ?? []), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105" title="Başkan Ekle/Düzenle">
-                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                                                        </svg>
+                                                    <button onclick="openAddPresidentModal('<?= htmlspecialchars($community, ENT_QUOTES) ?>', '<?= htmlspecialchars($community_details[$community]['name'] ?? $community, ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($community_details[$community]['president'] ?? []), ENT_QUOTES) ?>)" class="px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 text-xs flex items-center justify-center" title="Başkan Ekle/Düzenle">
                                                         Başkan
                                                     </button>
                                                     
-                                                    <button onclick="deleteCommunity(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-red-600 border-2 border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
-                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                        </svg>
+                                                    <button onclick="deleteCommunity(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>)" class="px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 text-xs flex items-center justify-center">
                                                         Sil
                                                     </button>
                                                 </div>
@@ -5259,18 +5250,7 @@ foreach ($community_details as $details) {
                                             <select name="president_department" id="presidentDepartment" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                                 <option value="">Bölüm Seçiniz</option>
                                                 <?php
-                                                $departments = [
-                                                    'Bilgisayar Mühendisliği', 'Yazılım Mühendisliği', 'Elektrik-Elektronik Mühendisliği', 'Endüstri Mühendisliği',
-                                                    'Makine Mühendisliği', 'İnşaat Mühendisliği', 'Kimya Mühendisliği', 'Gıda Mühendisliği',
-                                                    'Mimarlık', 'Şehir ve Bölge Planlama', 'İç Mimarlık', 'Endüstriyel Tasarım',
-                                                    'İşletme', 'İktisat', 'Siyaset Bilimi ve Kamu Yönetimi', 'Uluslararası İlişkiler',
-                                                    'Hukuk', 'Tıp', 'Diş Hekimliği', 'Eczacılık',
-                                                    'Hemşirelik', 'Fizyoterapi ve Rehabilitasyon', 'Beslenme ve Diyetetik', 'Psikoloji',
-                                                    'Sosyoloji', 'Tarih', 'Türk Dili ve Edebiyatı', 'İngiliz Dili ve Edebiyatı',
-                                                    'Matematik', 'Fizik', 'Kimya', 'Biyoloji',
-                                                    'Eğitim Bilimleri', 'Öğretmenlik Programları', 'Güzel Sanatlar', 'Müzik',
-                                                    'Spor Bilimleri', 'Turizm ve Otelcilik', 'Gastronomi ve Mutfak Sanatları', 'Diğer'
-                                                ];
+                                                // Mevcut departments listesini kullan
                                                 foreach ($departments as $dept): ?>
                                                     <option value="<?= htmlspecialchars($dept) ?>"><?= htmlspecialchars($dept) ?></option>
                                                 <?php endforeach; ?>
@@ -5408,6 +5388,21 @@ foreach ($community_details as $details) {
                                 document.execCommand('copy');
                                 
                                 // Kopyalandı bildirimi
+                                alert('URL kopyalandı!');
+                            }
+                        }
+                        
+                        // Başkan modalı için click outside handler
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const addPresidentModal = document.getElementById('addPresidentModal');
+                            if (addPresidentModal) {
+                                addPresidentModal.addEventListener('click', function(e) {
+                                    if (e.target === this) {
+                                        closeAddPresidentModal();
+                                    }
+                                });
+                            }
+                        });
                                 const btn = event.target;
                                 const originalText = btn.textContent;
                                 btn.textContent = 'Kopyalandı!';
