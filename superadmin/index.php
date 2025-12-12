@@ -3677,7 +3677,7 @@ foreach ($community_details as $details) {
                                     <h1 class="text-3xl font-bold text-gray-900 mb-2">Topluluklar</h1>
                                     <p class="text-gray-600">Toplam <span class="font-bold text-gray-900"><?= count($communities) ?></span> topluluk</p>
                                 </div>
-                                <button onclick="openCreateModal()" class="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2">
+                                <button onclick="window.openCreateModal()" class="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                     </svg>
@@ -3983,7 +3983,7 @@ foreach ($community_details as $details) {
                                                         Erişim
                                                     </a>
                                                     
-                                                    <button onclick="openEditCommunityModal('<?= htmlspecialchars($community, ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($community_details[$community] ?? []), ENT_QUOTES) ?>)" class="group px-4 py-3 bg-white text-purple-600 border-2 border-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-md hover:shadow-lg">
+                                                    <button onclick="window.openEditCommunityModal('<?= htmlspecialchars($community, ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($community_details[$community] ?? []), ENT_QUOTES) ?>)" class="group px-4 py-3 bg-white text-purple-600 border-2 border-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-md hover:shadow-lg">
                                                         <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                         </svg>
@@ -3997,7 +3997,7 @@ foreach ($community_details as $details) {
                                                         Plan & SMS
                                                     </button>
                                                     
-                                                    <button onclick="openAddPresidentModal('<?= htmlspecialchars($community, ENT_QUOTES) ?>', '<?= htmlspecialchars($community_details[$community]['name'] ?? $community, ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($community_details[$community]['president'] ?? []), ENT_QUOTES) ?>)" class="px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 text-xs flex items-center justify-center" title="Başkan Ekle/Düzenle">
+                                                    <button onclick="window.openAddPresidentModal('<?= htmlspecialchars($community, ENT_QUOTES) ?>', '<?= htmlspecialchars($community_details[$community]['name'] ?? $community, ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($community_details[$community]['president'] ?? []), ENT_QUOTES) ?>)" class="px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 text-xs flex items-center justify-center" title="Başkan Ekle/Düzenle">
                                                         Başkan
                                                     </button>
                                                     
@@ -7405,9 +7405,75 @@ function loadMoreSuperadminEvents() {
                 if (modal) {
                     modal.classList.add('hidden');
                     modal.classList.remove('flex');
+                    modal.style.display = 'none';
                 }
             } catch (error) {
                 console.error('closeAssignPlanSmsModal hatası:', error);
+            }
+        }
+        
+        window.switchTab = function(tab) {
+            try {
+                // Plan sekmesi
+                const planTab = document.getElementById('planTab');
+                const tabPlan = document.getElementById('tabPlan');
+                
+                // SMS sekmesi
+                const smsTab = document.getElementById('smsTab');
+                const tabSms = document.getElementById('tabSms');
+                
+                if (tab === 'plan') {
+                    if (planTab) planTab.style.display = 'block';
+                    if (smsTab) smsTab.style.display = 'none';
+                    if (tabPlan) {
+                        tabPlan.classList.add('text-purple-600', 'border-purple-600', 'bg-purple-50');
+                        tabPlan.classList.remove('text-gray-500');
+                    }
+                    if (tabSms) {
+                        tabSms.classList.remove('text-purple-600', 'border-purple-600', 'bg-purple-50');
+                        tabSms.classList.add('text-gray-500');
+                    }
+                } else if (tab === 'sms') {
+                    if (planTab) planTab.style.display = 'none';
+                    if (smsTab) smsTab.style.display = 'block';
+                    if (tabPlan) {
+                        tabPlan.classList.remove('text-purple-600', 'border-purple-600', 'bg-purple-50');
+                        tabPlan.classList.add('text-gray-500');
+                    }
+                    if (tabSms) {
+                        tabSms.classList.add('text-purple-600', 'border-purple-600', 'bg-purple-50');
+                        tabSms.classList.remove('text-gray-500');
+                    }
+                }
+            } catch (error) {
+                console.error('switchTab hatası:', error);
+            }
+        }
+        
+        window.updatePlanDetails = function() {
+            try {
+                const tier = document.querySelector('input[name="plan_tier"]:checked')?.value || 'standard';
+                const months = parseInt(document.getElementById('planMonths')?.value || 6);
+                let totalPrice = 0;
+                let details = '';
+
+                if (tier === 'standard') {
+                    totalPrice = 0;
+                    details = 'Standart plan ücretsizdir';
+                } else if (tier === 'professional') {
+                    totalPrice = 250 * months;
+                    details = `${months} ay × 250 TL = ${totalPrice} TL`;
+                } else if (tier === 'business') {
+                    totalPrice = 500 * months;
+                    details = `${months} ay × 500 TL = ${totalPrice} TL`;
+                }
+
+                const totalPriceEl = document.getElementById('totalPrice');
+                const planDetailsEl = document.getElementById('planDetails');
+                if (totalPriceEl) totalPriceEl.textContent = totalPrice.toLocaleString('tr-TR') + ' TL';
+                if (planDetailsEl) planDetailsEl.textContent = details;
+            } catch (error) {
+                console.error('updatePlanDetails hatası:', error);
             }
         }
         
