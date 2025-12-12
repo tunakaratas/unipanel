@@ -6877,21 +6877,45 @@ function loadMoreSuperadminEvents() {
                 <input type="hidden" name="action" value="edit_community">
                 <input type="hidden" name="folder" id="editCommunityFolder">
                 
+                <!-- Topluluk Klasörü (Sadece Göster) -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Topluluk Adı</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Topluluk Klasörü</label>
+                    <input type="text" id="editCommunityFolderDisplay" readonly class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed">
+                    <p class="text-xs text-gray-500 mt-1">Klasör adı değiştirilemez</p>
+                </div>
+                
+                <!-- Topluluk Adı -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Topluluk Adı <span class="text-red-500">*</span></label>
                     <input type="text" name="community_name" id="editCommunityName" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 </div>
                 
+                <!-- Üniversite -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Üniversite</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Üniversite <span class="text-red-500">*</span></label>
                     <input type="text" name="university" id="editCommunityUniversity" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 </div>
                 
+                <!-- Topluluk Kodu -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Topluluk Kodu</label>
                     <input type="text" name="community_code" id="editCommunityCode" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 </div>
                 
+                <!-- Admin Kullanıcı Adı -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Admin Kullanıcı Adı</label>
+                    <input type="text" name="admin_username" id="editCommunityAdminUsername" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                
+                <!-- Admin Şifresi -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Admin Şifresi</label>
+                    <input type="password" name="admin_password" id="editCommunityAdminPassword" placeholder="Değiştirmek için yeni şifre girin" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Boş bırakırsanız şifre değişmez</p>
+                </div>
+                
+                <!-- Durum -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Durum</label>
                     <select name="status" id="editCommunityStatus" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
