@@ -3722,12 +3722,12 @@ foreach ($community_details as $details) {
                                         <p class="text-sm text-gray-500 mt-1">Toplam <span id="totalCommunitiesCount" class="font-semibold text-purple-600"><?= count($communities) ?></span> topluluk</p>
                                     </div>
                                     <div class="flex items-center gap-3 flex-wrap">
-                                        <select id="filterStatus" class="community-filter-select px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all">
+                                        <select id="filterStatus" onchange="if(typeof filterCommunities === 'function') filterCommunities();" class="community-filter-select px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all">
                                             <option value="all">Tüm Durumlar</option>
                                             <option value="active">Aktif</option>
                                             <option value="inactive">Kapalı</option>
                                         </select>
-                                        <select id="filterTier" class="community-filter-select px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all">
+                                        <select id="filterTier" onchange="if(typeof filterCommunities === 'function') filterCommunities();" class="community-filter-select px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all">
                                             <option value="all">Tüm Planlar</option>
                                             <option value="standard">Standart</option>
                                             <option value="professional">Profesyonel</option>
@@ -3739,19 +3739,19 @@ foreach ($community_details as $details) {
                                 <!-- Gelişmiş Arama ve Filtreleme -->
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div class="relative">
-                                        <input type="text" id="communitySearch" placeholder="Topluluk adı, klasör veya üniversite ara..." class="community-filter-input w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all">
+                                        <input type="text" id="communitySearch" placeholder="Topluluk adı, klasör veya üniversite ara..." oninput="if(typeof filterCommunities === 'function') filterCommunities();" onkeyup="if(typeof filterCommunities === 'function') filterCommunities();" class="community-filter-input w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all">
                                         <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
                                     </div>
                                     <div class="relative">
-                                        <input type="text" id="filterUniversity" placeholder="Üniversite ara..." class="community-filter-input w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all">
+                                        <input type="text" id="filterUniversity" placeholder="Üniversite ara..." oninput="if(typeof filterCommunities === 'function') filterCommunities();" onkeyup="if(typeof filterCommunities === 'function') filterCommunities();" class="community-filter-input w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all">
                                         <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                         </svg>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <button id="clearFiltersBtn" class="px-4 py-2.5 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition duration-150 flex items-center gap-2 border-2 border-transparent hover:border-gray-300">
+                                        <button id="clearFiltersBtn" onclick="if(typeof clearFilters === 'function') clearFilters(); return false;" class="px-4 py-2.5 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition duration-150 flex items-center gap-2 border-2 border-transparent hover:border-gray-300">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                             </svg>
@@ -5459,27 +5459,19 @@ let communitiesOffset = <?= isset($has_more_communities) && $has_more_communitie
 let allCommunities = <?= json_encode($communities ?? []) ?>;
 let isLoadingCommunities = false;
 
-// Topluluk Filtreleme Sistemi - Basit ve Etkili Versiyon
+// Topluluk Filtreleme Sistemi - Çalışan Versiyon
 (function() {
     'use strict';
     
     let filterTimeout = null;
-    let communityItems = [];
-    
-    // Debounce fonksiyonu
-    function debounce(func, wait) {
-        return function(...args) {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => func.apply(this, args), wait);
-        };
-    }
     
     // Filtreleme fonksiyonu
     function performFilter() {
         // Tüm community-item'ları al
-        communityItems = document.querySelectorAll('.community-item');
+        const communityItems = document.querySelectorAll('.community-item');
         
         if (communityItems.length === 0) {
+            console.log('No community items found');
             return;
         }
         
@@ -5490,10 +5482,10 @@ let isLoadingCommunities = false;
         const tierSelect = document.getElementById('filterTier');
         const filteredCount = document.getElementById('filteredCount');
         
-        const searchTerm = (searchInput ? searchInput.value : '').toLowerCase().trim();
-        const universityTerm = (universityInput ? universityInput.value : '').toLowerCase().trim();
-        const statusFilter = statusSelect ? statusSelect.value : 'all';
-        const tierFilter = tierSelect ? tierSelect.value : 'all';
+        const searchTerm = (searchInput && searchInput.value ? searchInput.value : '').toLowerCase().trim();
+        const universityTerm = (universityInput && universityInput.value ? universityInput.value : '').toLowerCase().trim();
+        const statusFilter = (statusSelect && statusSelect.value ? statusSelect.value : 'all');
+        const tierFilter = (tierSelect && tierSelect.value ? tierSelect.value : 'all');
         
         let visibleCount = 0;
         
@@ -5561,6 +5553,14 @@ let isLoadingCommunities = false;
         performFilter();
     }
     
+    // Debounce fonksiyonu
+    function debounce(func, wait) {
+        return function(...args) {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+    
     // Event listener'ları kur
     function setupEventListeners() {
         const searchInput = document.getElementById('communitySearch');
@@ -5570,29 +5570,47 @@ let isLoadingCommunities = false;
         const clearBtn = document.getElementById('clearFiltersBtn');
         
         // Debounced filtreleme
-        const debouncedFilter = debounce(performFilter, 150);
+        const debouncedFilter = debounce(performFilter, 200);
         
+        // Arama input'u (inline handler'lar zaten var, ama ekstra güvenlik için)
         if (searchInput) {
-            searchInput.addEventListener('input', debouncedFilter);
-            searchInput.addEventListener('keyup', debouncedFilter);
+            searchInput.addEventListener('input', function(e) {
+                debouncedFilter();
+            });
+            searchInput.addEventListener('keyup', function(e) {
+                debouncedFilter();
+            });
         }
         
+        // Üniversite input'u (inline handler'lar zaten var, ama ekstra güvenlik için)
         if (universityInput) {
-            universityInput.addEventListener('input', debouncedFilter);
-            universityInput.addEventListener('keyup', debouncedFilter);
+            universityInput.addEventListener('input', function(e) {
+                debouncedFilter();
+            });
+            universityInput.addEventListener('keyup', function(e) {
+                debouncedFilter();
+            });
         }
         
+        // Durum select'i (inline handler zaten var, ama ekstra güvenlik için)
         if (statusSelect) {
-            statusSelect.addEventListener('change', performFilter);
+            statusSelect.addEventListener('change', function(e) {
+                performFilter();
+            });
         }
         
+        // Plan select'i (inline handler zaten var, ama ekstra güvenlik için)
         if (tierSelect) {
-            tierSelect.addEventListener('change', performFilter);
+            tierSelect.addEventListener('change', function(e) {
+                performFilter();
+            });
         }
         
+        // Temizle butonu (inline handler zaten var, ama ekstra güvenlik için)
         if (clearBtn) {
             clearBtn.addEventListener('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 clearAllFilters();
             });
         }
@@ -5604,20 +5622,24 @@ let isLoadingCommunities = false;
     
     // Sayfa yüklendiğinde başlat
     function init() {
+        console.log('Initializing filter system...');
+        
         // DOM hazır olana kadar bekle
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOMContentLoaded fired');
                 setTimeout(function() {
                     setupEventListeners();
                     performFilter();
-                }, 100);
+                }, 300);
             });
         } else {
             // DOM zaten yüklü
+            console.log('DOM already loaded');
             setTimeout(function() {
                 setupEventListeners();
                 performFilter();
-            }, 100);
+            }, 300);
         }
     }
     
@@ -5625,18 +5647,21 @@ let isLoadingCommunities = false;
     init();
     
     // DOM değişikliklerini izle (yeni topluluklar eklendiğinde)
-    const communitiesListContainer = document.getElementById('communitiesList');
-    if (communitiesListContainer) {
-        const observer = new MutationObserver(function() {
-            // Yeni item'lar eklendiğinde filtrelemeyi yeniden çalıştır
-            performFilter();
-        });
-        
-        observer.observe(communitiesListContainer, {
-            childList: true,
-            subtree: true
-        });
-    }
+    setTimeout(function() {
+        const communitiesListContainer = document.getElementById('communitiesList');
+        if (communitiesListContainer) {
+            const observer = new MutationObserver(function() {
+                // Yeni item'lar eklendiğinde filtrelemeyi yeniden çalıştır
+                performFilter();
+            });
+            
+            observer.observe(communitiesListContainer, {
+                childList: true,
+                subtree: true
+            });
+            console.log('MutationObserver set up');
+        }
+    }, 500);
     
 })();
 
