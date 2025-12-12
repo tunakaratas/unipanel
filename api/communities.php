@@ -68,13 +68,22 @@ function get_requested_university_id() {
     // Accept both university_id (preferred) and university (name) for compatibility.
     $raw = '';
     if (isset($_GET['university_id'])) {
-        $raw = (string)$_GET['university_id'];
-        // NOT: PHP'nin $_GET otomatik olarak URL decode eder
-        // Ama bazı durumlarda (özellikle Swift'ten gelen) çift encode olabilir
-        // Eğer hala % karakteri varsa, tekrar decode et
+        // PHP'nin $_GET otomatik olarak URL decode eder, ama raw query string'den almak daha güvenli
+        // Raw query string'den al (otomatik decode olmadan)
+        $raw_query = $_SERVER['QUERY_STRING'] ?? '';
+        if (!empty($raw_query)) {
+            parse_str($raw_query, $parsed);
+            if (isset($parsed['university_id'])) {
+                $raw = (string)$parsed['university_id'];
+            }
+        }
+        // Fallback: Eğer raw query'den alamadıysak $_GET'ten al (zaten decode edilmiş)
+        if (empty($raw)) {
+            $raw = (string)$_GET['university_id'];
+        }
+        // Eğer hala % karakteri varsa (çift encode durumu), tekrar decode et
         if (strpos($raw, '%') !== false) {
             $raw = urldecode($raw);
-            // Çift encode durumunda tekrar kontrol et
             if (strpos($raw, '%') !== false) {
                 $raw = urldecode($raw);
             }
@@ -101,9 +110,10 @@ function get_requested_university_id() {
 
     // Debug log
     $raw_input = isset($_GET['university_id']) ? $_GET['university_id'] : (isset($_GET['university']) ? $_GET['university'] : '');
-    error_log("Communities API get_requested_university_id: Raw input: '{$raw_input}' -> After decode: '{$raw}' -> Normalized: '" . normalize_university_id($raw) . "'");
+    $normalized = normalize_university_id($raw);
+    error_log("Communities API get_requested_university_id: Raw input: '{$raw_input}' -> After decode: '{$raw}' -> Normalized: '{$normalized}'");
 
-    return normalize_university_id($raw);
+    return $normalized;
 }
 
 // Public index.php'deki get_all_communities fonksiyonunu kopyala
