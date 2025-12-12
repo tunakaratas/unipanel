@@ -7230,7 +7230,7 @@ function loadMoreSuperadminEvents() {
             }
         }
 
-        function openEditCommunityModal(communityFolder, communityData) {
+        window.openEditCommunityModal = function(communityFolder, communityData) {
             try {
                 const modal = document.getElementById('editCommunityModal');
                 if (!modal) {
@@ -7364,7 +7364,7 @@ function loadMoreSuperadminEvents() {
         }
 
 
-        function openAssignPlanSmsModal(communityFolder, communityName) {
+        window.openAssignPlanSmsModal = function(communityFolder, communityName) {
             try {
                 const modal = document.getElementById('assignPlanSmsModal');
                 if (!modal) {
@@ -7399,7 +7399,7 @@ function loadMoreSuperadminEvents() {
             }
         }
 
-        function closeAssignPlanSmsModal() {
+        window.closeAssignPlanSmsModal = function() {
             try {
                 const modal = document.getElementById('assignPlanSmsModal');
                 if (modal) {
@@ -7774,23 +7774,18 @@ function loadMoreSuperadminEvents() {
 <?php endif; ?>
 
                     <script>
-        function openCreateModal() {
-            document.getElementById('createModal').classList.remove('hidden');
-        }
-        
-        function closeCreateModal() {
-            document.getElementById('createModal').classList.add('hidden');
-        }
-        
-        // Modal dışına tıklayınca kapat
-        const createModal = document.getElementById('createModal');
-        if (createModal) {
-            createModal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeCreateModal();
-                }
-            });
-        }
+        // openCreateModal ve closeCreateModal zaten head'de window objesine eklendi
+        // Burada sadece event listener ekliyoruz
+        document.addEventListener('DOMContentLoaded', function() {
+            const createModal = document.getElementById('createModal');
+            if (createModal) {
+                createModal.addEventListener('click', function(e) {
+                    if (e.target === this && typeof window.closeCreateModal === 'function') {
+                        window.closeCreateModal();
+                    }
+                });
+            }
+        });
         
         // Bildirim formu validation
         function validateNotificationForm() {
