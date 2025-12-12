@@ -5442,26 +5442,6 @@ foreach ($community_details as $details) {
                                 });
                             }
                         });
-                                const btn = event.target;
-                                const originalText = btn.textContent;
-                                btn.textContent = 'Kopyalandı!';
-                                btn.classList.add('bg-green-600', 'hover:bg-green-700');
-                                btn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
-                                
-                                setTimeout(function() {
-                                    btn.textContent = originalText;
-                                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                                    btn.classList.add('bg-purple-600', 'hover:bg-purple-700');
-                                }, 2000);
-                            }
-                        }
-                        
-                        // Modal dışına tıklanınca kapat
-                        document.getElementById('qrCodeModal')?.addEventListener('click', function(e) {
-                            if (e.target === this) {
-                                closeQRCodeModal();
-                            }
-                        });
                     </script>
 
 <!-- Superadmin Lazy Loading JavaScript -->
@@ -7352,6 +7332,57 @@ function loadMoreSuperadminEvents() {
                 }
             } catch (error) {
                 console.error('closeCreatePresidentModal hatası:', error);
+            }
+        }
+
+        // Başkan Ekle/Düzenle Modal Fonksiyonları
+        function openAddPresidentModal(communityFolder, communityName, presidentData) {
+            try {
+                const modal = document.getElementById('addPresidentModal');
+                if (!modal) {
+                    console.error('addPresidentModal bulunamadı!');
+                    alert('Modal bulunamadı. Sayfayı yenileyin.');
+                    return;
+                }
+                
+                // Form alanlarını doldur
+                document.getElementById('presidentCommunityFolder').value = communityFolder;
+                document.getElementById('presidentCommunityName').textContent = communityName;
+                
+                // Mevcut başkan bilgilerini doldur (varsa)
+                if (presidentData && presidentData.name) {
+                    document.getElementById('presidentName').value = presidentData.name || '';
+                    document.getElementById('presidentEmail').value = presidentData.email || '';
+                    document.getElementById('presidentPhone').value = presidentData.phone || '';
+                    document.getElementById('presidentStudentId').value = presidentData.student_id || '';
+                    document.getElementById('presidentDepartment').value = presidentData.department || '';
+                } else {
+                    // Formu temizle
+                    document.getElementById('presidentName').value = '';
+                    document.getElementById('presidentEmail').value = '';
+                    document.getElementById('presidentPhone').value = '';
+                    document.getElementById('presidentStudentId').value = '';
+                    document.getElementById('presidentDepartment').value = '';
+                }
+                
+                // Modal'ı göster
+                modal.style.display = 'flex';
+                modal.classList.remove('hidden');
+            } catch (error) {
+                console.error('openAddPresidentModal hatası:', error);
+                alert('Modal açılırken hata oluştu: ' + error.message);
+            }
+        }
+        
+        function closeAddPresidentModal() {
+            try {
+                const modal = document.getElementById('addPresidentModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('closeAddPresidentModal hatası:', error);
             }
         }
 
