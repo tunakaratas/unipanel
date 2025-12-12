@@ -5459,105 +5459,68 @@ let communitiesOffset = <?= isset($has_more_communities) && $has_more_communitie
 let allCommunities = <?= json_encode($communities ?? []) ?>;
 let isLoadingCommunities = false;
 
-// Topluluk Filtreleme Sistemi - Tamamen Yeniden Yazıldı
+// Topluluk Filtreleme Sistemi - Basit ve Etkili Versiyon
 (function() {
     'use strict';
     
-    // Filtreleme state'i
-    const filterState = {
-        searchTerm: '',
-        universityFilter: '',
-        statusFilter: 'all',
-        tierFilter: 'all'
-    };
+    let filterTimeout = null;
+    let communityItems = [];
     
-    // DOM elementlerini cache'le
-    let elements = {
-        searchInput: null,
-        universityInput: null,
-        statusSelect: null,
-        tierSelect: null,
-        clearBtn: null,
-        filteredCount: null,
-        totalCount: null,
-        communityItems: null
-    };
-    
-    // Elementleri bul ve cache'le (retry mekanizması ile)
-    function initElements(retryCount = 0) {
-        const maxRetries = 10;
-        const retryDelay = 100; // ms
-        
-        elements.searchInput = document.getElementById('communitySearch');
-        elements.universityInput = document.getElementById('filterUniversity');
-        elements.statusSelect = document.getElementById('filterStatus');
-        elements.tierSelect = document.getElementById('filterTier');
-        elements.clearBtn = document.getElementById('clearFiltersBtn');
-        elements.filteredCount = document.getElementById('filteredCount');
-        elements.totalCount = document.getElementById('totalCommunitiesCount');
-        elements.communityItems = document.querySelectorAll('.community-item');
-        
-        // Elementlerin varlığını kontrol et
-        if (!elements.communityItems || elements.communityItems.length === 0) {
-            if (retryCount < maxRetries) {
-                // Retry mekanizması - elementler henüz yüklenmemiş olabilir
-                setTimeout(function() {
-                    initElements(retryCount + 1);
-                }, retryDelay);
-                return false;
-            } else {
-                console.warn('Community items not found after ' + maxRetries + ' retries');
-                return false;
-            }
-        }
-        
-        // Tüm gerekli elementler bulundu
-        if (retryCount > 0) {
-            console.log('Community filter elements initialized after ' + retryCount + ' retries');
-        }
-        
-        return true;
+    // Debounce fonksiyonu
+    function debounce(func, wait) {
+        return function(...args) {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => func.apply(this, args), wait);
+        };
     }
     
     // Filtreleme fonksiyonu
     function performFilter() {
-        // Elementler bulunamadıysa yeniden dene
-        if (!elements.communityItems || elements.communityItems.length === 0) {
-            // Community items'ı yeniden al
-            elements.communityItems = document.querySelectorAll('.community-item');
-            if (!elements.communityItems || elements.communityItems.length === 0) {
-                return;
-            }
+        // Tüm community-item'ları al
+        communityItems = document.querySelectorAll('.community-item');
+        
+        if (communityItems.length === 0) {
+            return;
         }
         
-        let visibleCount = 0;
-        const searchLower = filterState.searchTerm.toLowerCase().trim();
-        const universityLower = filterState.universityFilter.toLowerCase().trim();
+        // Filtre değerlerini al
+        const searchInput = document.getElementById('communitySearch');
+        const universityInput = document.getElementById('filterUniversity');
+        const statusSelect = document.getElementById('filterStatus');
+        const tierSelect = document.getElementById('filterTier');
+        const filteredCount = document.getElementById('filteredCount');
         
-        elements.communityItems.forEach(function(item) {
-            // Data attribute'ları al
+        const searchTerm = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        const universityTerm = (universityInput ? universityInput.value : '').toLowerCase().trim();
+        const statusFilter = statusSelect ? statusSelect.value : 'all';
+        const tierFilter = tierSelect ? tierSelect.value : 'all';
+        
+        let visibleCount = 0;
+        
+        // Her bir topluluk için filtreleme
+        communityItems.forEach(function(item) {
             const name = (item.getAttribute('data-name') || '').toLowerCase();
             const folder = (item.getAttribute('data-folder') || '').toLowerCase();
             const university = (item.getAttribute('data-university') || '').toLowerCase();
             const status = item.getAttribute('data-status') || '';
             const tier = item.getAttribute('data-tier') || 'none';
             
-            // Arama filtresi kontrolü
-            const matchesSearch = !searchLower || 
-                name.includes(searchLower) || 
-                folder.includes(searchLower) || 
-                university.includes(searchLower);
+            // Arama filtresi
+            const matchesSearch = !searchTerm || 
+                name.includes(searchTerm) || 
+                folder.includes(searchTerm) || 
+                university.includes(searchTerm);
             
-            // Üniversite filtresi kontrolü
-            const matchesUniversity = !universityLower || university.includes(universityLower);
+            // Üniversite filtresi
+            const matchesUniversity = !universityTerm || university.includes(universityTerm);
             
-            // Durum filtresi kontrolü
-            const matchesStatus = filterState.statusFilter === 'all' || 
-                (filterState.statusFilter === 'active' && status === 'active') ||
-                (filterState.statusFilter === 'inactive' && status !== 'active');
+            // Durum filtresi
+            const matchesStatus = statusFilter === 'all' || 
+                (statusFilter === 'active' && status === 'active') ||
+                (statusFilter === 'inactive' && status !== 'active');
             
-            // Plan filtresi kontrolü
-            const matchesTier = filterState.tierFilter === 'all' || tier === filterState.tierFilter;
+            // Plan filtresi
+            const matchesTier = tierFilter === 'all' || tier === tierFilter;
             
             // Tüm filtreler geçiyorsa göster
             if (matchesSearch && matchesUniversity && matchesStatus && matchesTier) {
@@ -5571,148 +5534,102 @@ let isLoadingCommunities = false;
         });
         
         // Sonuç sayısını güncelle
-        updateFilteredCount(visibleCount);
-    }
-    
-    // Filtrelenmiş sayıyı güncelle
-    function updateFilteredCount(visibleCount) {
-        if (!elements.filteredCount) return;
-        
-        const hasActiveFilters = filterState.searchTerm || 
-                                filterState.universityFilter || 
-                                filterState.statusFilter !== 'all' || 
-                                filterState.tierFilter !== 'all';
-        
-        if (hasActiveFilters) {
-            elements.filteredCount.textContent = visibleCount + ' topluluk gösteriliyor';
-            elements.filteredCount.classList.remove('hidden');
-        } else {
-            elements.filteredCount.textContent = '';
-            elements.filteredCount.classList.add('hidden');
+        if (filteredCount) {
+            const hasActiveFilters = searchTerm || universityTerm || statusFilter !== 'all' || tierFilter !== 'all';
+            if (hasActiveFilters) {
+                filteredCount.textContent = visibleCount + ' topluluk gösteriliyor';
+                filteredCount.classList.remove('hidden');
+            } else {
+                filteredCount.textContent = '';
+                filteredCount.classList.add('hidden');
+            }
         }
     }
     
     // Filtreleri temizle
     function clearAllFilters() {
-        filterState.searchTerm = '';
-        filterState.universityFilter = '';
-        filterState.statusFilter = 'all';
-        filterState.tierFilter = 'all';
+        const searchInput = document.getElementById('communitySearch');
+        const universityInput = document.getElementById('filterUniversity');
+        const statusSelect = document.getElementById('filterStatus');
+        const tierSelect = document.getElementById('filterTier');
         
-        if (elements.searchInput) elements.searchInput.value = '';
-        if (elements.universityInput) elements.universityInput.value = '';
-        if (elements.statusSelect) elements.statusSelect.value = 'all';
-        if (elements.tierSelect) elements.tierSelect.value = 'all';
+        if (searchInput) searchInput.value = '';
+        if (universityInput) universityInput.value = '';
+        if (statusSelect) statusSelect.value = 'all';
+        if (tierSelect) tierSelect.value = 'all';
         
         performFilter();
     }
     
-    // Event handler'ları
+    // Event listener'ları kur
     function setupEventListeners() {
-        // Arama input'u
-        if (elements.searchInput) {
-            elements.searchInput.addEventListener('input', function(e) {
-                filterState.searchTerm = e.target.value;
-                performFilter();
-            });
-            
-            elements.searchInput.addEventListener('keyup', function(e) {
-                filterState.searchTerm = e.target.value;
-                performFilter();
-            });
+        const searchInput = document.getElementById('communitySearch');
+        const universityInput = document.getElementById('filterUniversity');
+        const statusSelect = document.getElementById('filterStatus');
+        const tierSelect = document.getElementById('filterTier');
+        const clearBtn = document.getElementById('clearFiltersBtn');
+        
+        // Debounced filtreleme
+        const debouncedFilter = debounce(performFilter, 150);
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', debouncedFilter);
+            searchInput.addEventListener('keyup', debouncedFilter);
         }
         
-        // Üniversite input'u
-        if (elements.universityInput) {
-            elements.universityInput.addEventListener('input', function(e) {
-                filterState.universityFilter = e.target.value;
-                performFilter();
-            });
-            
-            elements.universityInput.addEventListener('keyup', function(e) {
-                filterState.universityFilter = e.target.value;
-                performFilter();
-            });
+        if (universityInput) {
+            universityInput.addEventListener('input', debouncedFilter);
+            universityInput.addEventListener('keyup', debouncedFilter);
         }
         
-        // Durum select'i
-        if (elements.statusSelect) {
-            elements.statusSelect.addEventListener('change', function(e) {
-                filterState.statusFilter = e.target.value;
-                performFilter();
-            });
+        if (statusSelect) {
+            statusSelect.addEventListener('change', performFilter);
         }
         
-        // Plan select'i
-        if (elements.tierSelect) {
-            elements.tierSelect.addEventListener('change', function(e) {
-                filterState.tierFilter = e.target.value;
-                performFilter();
-            });
+        if (tierSelect) {
+            tierSelect.addEventListener('change', performFilter);
         }
         
-        // Temizle butonu
-        if (elements.clearBtn) {
-            elements.clearBtn.addEventListener('click', function(e) {
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 clearAllFilters();
             });
         }
     }
     
-    // Global fonksiyonlar (geriye dönük uyumluluk için)
-    window.filterCommunities = function() {
-        // State'i güncelle
-        if (elements.searchInput) filterState.searchTerm = elements.searchInput.value || '';
-        if (elements.universityInput) filterState.universityFilter = elements.universityInput.value || '';
-        if (elements.statusSelect) filterState.statusFilter = elements.statusSelect.value || 'all';
-        if (elements.tierSelect) filterState.tierFilter = elements.tierSelect.value || 'all';
-        
-        performFilter();
-    };
-    
+    // Global fonksiyonlar
+    window.filterCommunities = performFilter;
     window.clearFilters = clearAllFilters;
     
     // Sayfa yüklendiğinde başlat
     function init() {
-        // DOMContentLoaded bekleniyor mu kontrol et
+        // DOM hazır olana kadar bekle
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                if (initElements()) {
+                setTimeout(function() {
                     setupEventListeners();
-                    performFilter(); // İlk filtreleme
-                }
+                    performFilter();
+                }, 100);
             });
         } else {
             // DOM zaten yüklü
-            if (initElements()) {
+            setTimeout(function() {
                 setupEventListeners();
-                performFilter(); // İlk filtreleme
-            }
+                performFilter();
+            }, 100);
         }
     }
     
     // Başlat
     init();
     
-    // MutationObserver ile DOM değişikliklerini takip et
+    // DOM değişikliklerini izle (yeni topluluklar eklendiğinde)
     const communitiesListContainer = document.getElementById('communitiesList');
     if (communitiesListContainer) {
-        const observer = new MutationObserver(function(mutations) {
-            let shouldReinit = false;
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    // Yeni community-item'lar eklendi
-                    shouldReinit = true;
-                }
-            });
-            
-            if (shouldReinit) {
-                // Elementleri yeniden al
-                elements.communityItems = document.querySelectorAll('.community-item');
-                // Filtreleme durumunu koru
-                performFilter();
-            }
+        const observer = new MutationObserver(function() {
+            // Yeni item'lar eklendiğinde filtrelemeyi yeniden çalıştır
+            performFilter();
         });
         
         observer.observe(communitiesListContainer, {
@@ -5720,22 +5637,6 @@ let isLoadingCommunities = false;
             subtree: true
         });
     }
-    
-    // Sayfa değiştiğinde yeniden başlat (AJAX navigasyon için)
-    let lastUrl = location.href;
-    const urlObserver = new MutationObserver(function() {
-        const url = location.href;
-        if (url !== lastUrl) {
-            lastUrl = url;
-            setTimeout(function() {
-                if (initElements()) {
-                    setupEventListeners();
-                    performFilter();
-                }
-            }, 100);
-        }
-    });
-    urlObserver.observe(document, { subtree: true, childList: true });
     
 })();
 
