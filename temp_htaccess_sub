@@ -1,0 +1,24 @@
+
+# Security
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+Options -Indexes
+
+# Rewrite Rules for Communities inside /unipanel/
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /unipanel/
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^communities/([a-z0-9_-]+)/?$ communities/$1/index.php [L,QSA]
+    
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !\.php$
+    RewriteRule ^communities/([a-z0-9_-]+)/(.+)$ communities/$1/index.php [L,QSA]
+</IfModule>

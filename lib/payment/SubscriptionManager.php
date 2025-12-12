@@ -23,22 +23,38 @@ class SubscriptionManager {
      * Abonelik tablosunu oluştur (Güçlendirilmiş - Gerçek Hayat Senaryoları İçin)
      */
     public function createSubscriptionTable() {
+        // Veritabanı yazılabilir mi kontrol et
+        $db_path = $this->db->filename ?? null;
+        $is_writable = false;
+        
+        if ($db_path && file_exists($db_path)) {
+            if (!is_writable($db_path)) {
+                @chmod($db_path, 0644);
+                @chmod(dirname($db_path), 0755);
+            }
+            $is_writable = is_writable($db_path);
+        }
+        
+        // Tablo zaten var mı kontrol et
+        $table_exists = false;
         try {
-            // Veritabanı yazılabilir mi kontrol et
-            $db_path = $this->db->filename ?? null;
-            if ($db_path && file_exists($db_path)) {
-                if (!is_writable($db_path)) {
-                    @chmod($db_path, 0644);
-                    @chmod(dirname($db_path), 0755);
-                }
+            $result = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+            if ($result !== false) {
+                $table_exists = $result->fetchArray() !== false;
             }
         } catch (\Exception $e) {
-            error_log("SubscriptionManager: Permission check failed - " . $e->getMessage());
+            // Tablo kontrolü başarısız, devam et
+        }
+        
+        // Tablo yoksa ve yazılabilir değilse, hiçbir şey yapma
+        if (!$table_exists && !$is_writable) {
+            error_log("SubscriptionManager: Cannot create subscriptions table - database is readonly");
+            return; // Readonly veritabanında tablo oluşturulamaz
         }
         
         try {
             // Önce basit tabloyu oluştur
-            $this->db->exec("CREATE TABLE IF NOT EXISTS subscriptions (
+            $result = @$this->db->exec("CREATE TABLE IF NOT EXISTS subscriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             community_id TEXT NOT NULL,
             payment_id TEXT,
@@ -52,13 +68,36 @@ class SubscriptionManager {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
+            
+            // Exec başarısız olduysa kontrol et
+            if ($result === false) {
+                $error_msg = $this->db->lastErrorMsg();
+                if (strpos($error_msg, 'readonly') !== false) {
+                    error_log("SubscriptionManager: Cannot create subscriptions table - readonly database");
+                    return; // Readonly veritabanında devam etme
+                }
+            }
         } catch (\Exception $e) {
             // Readonly veritabanı hatası - sessizce devam et
-            if (strpos($e->getMessage(), 'readonly') !== false || strpos($e->getMessage(), 'no such table') !== false) {
-                error_log("SubscriptionManager: Cannot create subscriptions table (readonly or missing) - " . $e->getMessage());
+            if (strpos($e->getMessage(), 'readonly') !== false) {
+                error_log("SubscriptionManager: Cannot create subscriptions table (readonly) - " . $e->getMessage());
                 return; // Tablo oluşturulamazsa devam etme
             }
-            throw $e;
+            // Diğer hatalar için logla ama devam et
+            error_log("SubscriptionManager: Table creation error - " . $e->getMessage());
+        }
+        
+        // Tablo oluşturuldu mu kontrol et
+        try {
+            $result = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+            if ($result === false || $result->fetchArray() === false) {
+                // Tablo oluşturulamadı, devam etme
+                error_log("SubscriptionManager: subscriptions table does not exist after creation attempt");
+                return;
+            }
+        } catch (\Exception $e) {
+            error_log("SubscriptionManager: Table existence check failed - " . $e->getMessage());
+            return;
         }
         
         // Yeni kolonları ekle (migration)
@@ -82,19 +121,19 @@ class SubscriptionManager {
             // Veritabanı yazılabilirse index oluştur
             $db_path = $this->db->filename ?? null;
             if ($db_path && is_writable($db_path)) {
-                $this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_id ON subscriptions(payment_id) WHERE payment_id IS NOT NULL");
+                @$this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_id ON subscriptions(payment_id) WHERE payment_id IS NOT NULL");
                 
                 // payment_token kolonu varsa index oluştur
                 if (in_array('payment_token', $columns)) {
-                    $this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_token ON subscriptions(payment_token) WHERE payment_token IS NOT NULL");
+                    @$this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_token ON subscriptions(payment_token) WHERE payment_token IS NOT NULL");
                 }
                 
-                $this->db->exec("CREATE INDEX IF NOT EXISTS idx_community_id ON subscriptions(community_id)");
-                $this->db->exec("CREATE INDEX IF NOT EXISTS idx_payment_status ON subscriptions(payment_status)");
+                @$this->db->exec("CREATE INDEX IF NOT EXISTS idx_community_id ON subscriptions(community_id)");
+                @$this->db->exec("CREATE INDEX IF NOT EXISTS idx_payment_status ON subscriptions(payment_status)");
                 
                 // expires_at kolonu varsa index oluştur
                 if (in_array('expires_at', $columns)) {
-                    $this->db->exec("CREATE INDEX IF NOT EXISTS idx_expires_at ON subscriptions(expires_at) WHERE expires_at IS NOT NULL");
+                    @$this->db->exec("CREATE INDEX IF NOT EXISTS idx_expires_at ON subscriptions(expires_at) WHERE expires_at IS NOT NULL");
                 }
             }
         } catch (\Exception $e) {
@@ -106,7 +145,13 @@ class SubscriptionManager {
         
         // Subscription Logs Tablosu
         try {
-            $this->db->exec("CREATE TABLE IF NOT EXISTS subscription_logs (
+            $db_path = $this->db->filename ?? null;
+            if ($db_path && !is_writable($db_path)) {
+                // Readonly ise tablo oluşturma işlemlerini atla
+                return;
+            }
+            
+            @$this->db->exec("CREATE TABLE IF NOT EXISTS subscription_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 subscription_id INTEGER,
                 community_id TEXT NOT NULL,
@@ -126,7 +171,7 @@ class SubscriptionManager {
         
         // Subscription Rate Limits Tablosu
         try {
-            $this->db->exec("CREATE TABLE IF NOT EXISTS subscription_rate_limits (
+            @$this->db->exec("CREATE TABLE IF NOT EXISTS subscription_rate_limits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 community_id TEXT NOT NULL,
                 ip_address TEXT,
@@ -143,7 +188,7 @@ class SubscriptionManager {
         
         // SMS Usage Tablosu - SMS kullanımını takip eder
         try {
-            $this->db->exec("CREATE TABLE IF NOT EXISTS sms_usage (
+            @$this->db->exec("CREATE TABLE IF NOT EXISTS sms_usage (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 community_id TEXT NOT NULL,
                 recipient_count INTEGER NOT NULL,
@@ -155,8 +200,8 @@ class SubscriptionManager {
             )");
             
             // SMS Usage için index
-            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_community_month ON sms_usage(community_id, month_year)");
-            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_sent_at ON sms_usage(sent_at)");
+            @$this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_community_month ON sms_usage(community_id, month_year)");
+            @$this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_sent_at ON sms_usage(sent_at)");
         } catch (\Exception $e) {
             if (strpos($e->getMessage(), 'readonly') === false) {
                 error_log("SMS usage table creation warning: " . $e->getMessage());
@@ -165,7 +210,7 @@ class SubscriptionManager {
         
         // SMS Kredileri Tablosu (Superadmin tarafından tahsis edilen SMS paketleri)
         try {
-            $this->db->exec("CREATE TABLE IF NOT EXISTS sms_credits (
+            @$this->db->exec("CREATE TABLE IF NOT EXISTS sms_credits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 community_id TEXT NOT NULL,
                 credits INTEGER NOT NULL DEFAULT 0,
@@ -176,15 +221,32 @@ class SubscriptionManager {
             )");
             
             // SMS Credits için index
-            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_credits_community ON sms_credits(community_id)");
+            @$this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_credits_community ON sms_credits(community_id)");
         } catch (\Exception $e) {
             if (strpos($e->getMessage(), 'readonly') === false) {
                 error_log("SMS credits table creation warning: " . $e->getMessage());
             }
         }
         
+        // Tablo oluşturuldu mu tekrar kontrol et (migration ve diğer işlemler için)
+        try {
+            $result = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+            if ($result === false || $result->fetchArray() === false) {
+                // Tablo yok, migration ve diğer işlemleri yapma
+                error_log("SubscriptionManager: subscriptions table does not exist, skipping migrations");
+                return;
+            }
+        } catch (\Exception $e) {
+            error_log("SubscriptionManager: Table existence check failed - " . $e->getMessage());
+            return;
+        }
+        
         // Migration: tier sütunu yoksa ekle
-        $this->migrateTierColumn();
+        try {
+            $this->migrateTierColumn();
+        } catch (\Exception $e) {
+            error_log("SubscriptionManager: migrateTierColumn failed - " . $e->getMessage());
+        }
         
         // Standart sürümü otomatik aktif et (eğer abonelik yoksa)
         try {
@@ -200,11 +262,19 @@ class SubscriptionManager {
      */
     private function migrateSubscriptionTable() {
         try {
+            // Önce tablonun varlığını kontrol et
+            $table_check = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+            if ($table_check === false || $table_check->fetchArray() === false) {
+                return; // Tablo yoksa migration yapma
+            }
+            
             // Mevcut kolonları kontrol et
             $existingColumns = [];
-            $result = $this->db->query("PRAGMA table_info(subscriptions)");
-            while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
-                $existingColumns[] = $row['name'];
+            $result = @$this->db->query("PRAGMA table_info(subscriptions)");
+            if ($result !== false) {
+                while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
+                    $existingColumns[] = $row['name'];
+                }
             }
             
             // Yeni kolonları ekle (eğer yoksa) - UNIQUE constraint olmadan
@@ -227,17 +297,23 @@ class SubscriptionManager {
             foreach ($newColumns as $columnName => $columnType) {
                 if (!in_array($columnName, $existingColumns)) {
                     try {
+                        // Veritabanı yazılabilir mi kontrol et
+                        $db_path = $this->db->filename ?? null;
+                        if ($db_path && !is_writable($db_path)) {
+                            continue; // Readonly ise bu kolonu atla
+                        }
+                        
                         // SQLite'da UNIQUE constraint ile kolon eklenemez, sadece kolon tipi
-                        $result = $this->db->exec("ALTER TABLE subscriptions ADD COLUMN {$columnName} {$columnType}");
+                        $result = @$this->db->exec("ALTER TABLE subscriptions ADD COLUMN {$columnName} {$columnType}");
                         if ($result === false) {
                             $error_msg = $this->db->lastErrorMsg();
-                            if (strpos($error_msg, 'readonly') === false) {
+                            if (strpos($error_msg, 'readonly') === false && strpos($error_msg, 'duplicate column') === false) {
                                 error_log("Subscription column migration warning: {$columnName} - " . $error_msg);
                             }
                         }
                     } catch (\Exception $e) {
                         // Readonly veritabanı hatası sessizce geç, diğer hataları logla
-                        if (strpos($e->getMessage(), 'readonly') === false) {
+                        if (strpos($e->getMessage(), 'readonly') === false && strpos($e->getMessage(), 'duplicate column') === false) {
                             error_log("Subscription column migration warning: {$columnName} - " . $e->getMessage());
                         }
                     }
@@ -246,18 +322,27 @@ class SubscriptionManager {
             
             // Unique index'leri oluştur (kolonlar eklendikten sonra)
             try {
+                $db_path = $this->db->filename ?? null;
+                if ($db_path && !is_writable($db_path)) {
+                    return; // Readonly ise index oluşturma
+                }
+                
                 $updatedColumns = [];
-                $result = $this->db->query("PRAGMA table_info(subscriptions)");
-                while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
-                    $updatedColumns[] = $row['name'];
+                $result = @$this->db->query("PRAGMA table_info(subscriptions)");
+                if ($result !== false) {
+                    while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
+                        $updatedColumns[] = $row['name'];
+                    }
                 }
                 
                 // payment_token için unique index
                 if (in_array('payment_token', $updatedColumns)) {
-                    $this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_token ON subscriptions(payment_token) WHERE payment_token IS NOT NULL");
+                    @$this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_token ON subscriptions(payment_token) WHERE payment_token IS NOT NULL");
                 }
             } catch (\Exception $e) {
-                error_log("Subscription unique index creation warning: " . $e->getMessage());
+                if (strpos($e->getMessage(), 'readonly') === false) {
+                    error_log("Subscription unique index creation warning: " . $e->getMessage());
+                }
             }
             
         } catch (\Exception $e) {
@@ -270,34 +355,48 @@ class SubscriptionManager {
      */
     private function migrateTierColumn() {
         try {
-            // Mevcut sütunları kontrol et
-            $existingColumns = [];
-            $result = $this->db->query("PRAGMA table_info(subscriptions)");
-            if ($result === false) {
+            // Önce tablonun varlığını kontrol et
+            $table_check = @$this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+            if ($table_check === false || $table_check->fetchArray() === false) {
                 return; // Tablo yoksa çık
             }
-            while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
-                $existingColumns[] = $row['name'];
+            
+            // Veritabanı yazılabilir mi kontrol et
+            $db_path = $this->db->filename ?? null;
+            if ($db_path && !is_writable($db_path)) {
+                return; // Readonly ise migration yapma
+            }
+            
+            // Mevcut sütunları kontrol et
+            $existingColumns = [];
+            $result = @$this->db->query("PRAGMA table_info(subscriptions)");
+            if ($result !== false) {
+                while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
+                    $existingColumns[] = $row['name'];
+                }
             }
             
             // tier sütunu yoksa ekle
             if (!in_array('tier', $existingColumns)) {
                 try {
-                    $result = $this->db->exec("ALTER TABLE subscriptions ADD COLUMN tier TEXT DEFAULT 'standard'");
-                    if ($result === false && strpos($this->db->lastErrorMsg(), 'readonly') === false) {
-                        error_log("Tier sütunu eklenirken hata: " . $this->db->lastErrorMsg());
+                    $result = @$this->db->exec("ALTER TABLE subscriptions ADD COLUMN tier TEXT DEFAULT 'standard'");
+                    if ($result === false) {
+                        $error_msg = $this->db->lastErrorMsg();
+                        if (strpos($error_msg, 'readonly') === false && strpos($error_msg, 'duplicate column') === false) {
+                            error_log("Tier sütunu eklenirken hata: " . $error_msg);
+                        }
                         return;
                     }
                     
                     // Mevcut kayıtları güncelle (amount'a göre tier belirle) - sadece yazılabilirse
-                    if (is_writable($this->db->filename ?? '')) {
-                        $this->db->exec("UPDATE subscriptions SET tier = 'standard' WHERE amount = 0 OR tier IS NULL");
-                        $this->db->exec("UPDATE subscriptions SET tier = 'professional' WHERE amount > 0 AND amount <= 250 AND (tier IS NULL OR tier = 'standard')");
-                        $this->db->exec("UPDATE subscriptions SET tier = 'business' WHERE amount > 250 AND (tier IS NULL OR tier = 'standard')");
+                    if ($db_path && is_writable($db_path)) {
+                        @$this->db->exec("UPDATE subscriptions SET tier = 'standard' WHERE amount = 0 OR tier IS NULL");
+                        @$this->db->exec("UPDATE subscriptions SET tier = 'professional' WHERE amount > 0 AND amount <= 250 AND (tier IS NULL OR tier = 'standard')");
+                        @$this->db->exec("UPDATE subscriptions SET tier = 'business' WHERE amount > 250 AND (tier IS NULL OR tier = 'standard')");
                     }
                 } catch (\Exception $e) {
                     // Readonly hatası sessizce geç
-                    if (strpos($e->getMessage(), 'readonly') === false) {
+                    if (strpos($e->getMessage(), 'readonly') === false && strpos($e->getMessage(), 'duplicate column') === false) {
                         error_log("Tier sütunu eklenirken hata: " . $e->getMessage());
                     }
                 }

@@ -49,12 +49,17 @@ function getSQLite3Connection($dbPath, $retries = 3) {
             }
             
             // PRAGMA komutlarını çalıştır (sadece yazılabilirse)
-            if ($is_writable || is_writable($dbPath)) {
-                $db->exec('PRAGMA journal_mode = WAL');
-                $db->exec('PRAGMA synchronous = NORMAL');
-            } else {
-                // Readonly modda çalış
-                $db->exec('PRAGMA query_only = 1');
+            try {
+                if ($is_writable || is_writable($dbPath)) {
+                    @$db->exec('PRAGMA journal_mode = WAL');
+                    @$db->exec('PRAGMA synchronous = NORMAL');
+                } else {
+                    // Readonly modda çalış
+                    @$db->exec('PRAGMA query_only = 1');
+                }
+            } catch (\Exception $e) {
+                // PRAGMA hatası kritik değil, devam et
+                error_log("PRAGMA error (non-critical): " . $e->getMessage());
             }
             
             return $db;
@@ -437,11 +442,25 @@ function initLogDatabase() {
             return;
         }
         $db->busyTimeout(30000); // 30 saniye timeout
-        $db->exec('PRAGMA journal_mode = WAL');
-        $db->exec('PRAGMA synchronous = NORMAL'); // Performans için
+        
+        // PRAGMA komutlarını try-catch ile koru
+        try {
+            if (is_writable(SUPERADMIN_DB)) {
+                @$db->exec('PRAGMA journal_mode = WAL');
+                @$db->exec('PRAGMA synchronous = NORMAL'); // Performans için
+            } else {
+                @$db->exec('PRAGMA query_only = 1');
+            }
+        } catch (\Exception $e) {
+            // PRAGMA hatası kritik değil, devam et
+            error_log("PRAGMA error (non-critical): " . $e->getMessage());
+        }
     
         // Activity Logs Tablosu (Admin işlemleri ve kullanıcı aktiviteleri)
-        $db->exec("CREATE TABLE IF NOT EXISTS activity_logs (
+        // Sadece yazılabilirse tablo oluştur
+        if (is_writable(SUPERADMIN_DB)) {
+            try {
+                @$db->exec("CREATE TABLE IF NOT EXISTS activity_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             community_name TEXT,
             user_type TEXT NOT NULL,
@@ -456,7 +475,7 @@ function initLogDatabase() {
         )");
         
         // System Logs Tablosu (Sistem olayları)
-        $db->exec("CREATE TABLE IF NOT EXISTS system_logs (
+                @$db->exec("CREATE TABLE IF NOT EXISTS system_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             log_level TEXT NOT NULL,
             log_category TEXT,
@@ -467,7 +486,7 @@ function initLogDatabase() {
         )");
         
         // Error Logs Tablosu (Hata logları)
-        $db->exec("CREATE TABLE IF NOT EXISTS error_logs (
+                @$db->exec("CREATE TABLE IF NOT EXISTS error_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             error_type TEXT NOT NULL,
             error_message TEXT NOT NULL,
@@ -482,13 +501,18 @@ function initLogDatabase() {
         )");
         
         // İndeksler
-        $db->exec("CREATE INDEX IF NOT EXISTS idx_activity_community ON activity_logs(community_name)");
-        $db->exec("CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_logs(user_id, user_type)");
-        $db->exec("CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_logs(created_at)");
-        $db->exec("CREATE INDEX IF NOT EXISTS idx_system_level ON system_logs(log_level)");
-        $db->exec("CREATE INDEX IF NOT EXISTS idx_system_created ON system_logs(created_at)");
-        $db->exec("CREATE INDEX IF NOT EXISTS idx_error_type ON error_logs(error_type)");
-        $db->exec("CREATE INDEX IF NOT EXISTS idx_error_created ON error_logs(created_at)");
+                @$db->exec("CREATE INDEX IF NOT EXISTS idx_activity_community ON activity_logs(community_name)");
+                @$db->exec("CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_logs(user_id, user_type)");
+                @$db->exec("CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_logs(created_at)");
+                @$db->exec("CREATE INDEX IF NOT EXISTS idx_system_level ON system_logs(log_level)");
+                @$db->exec("CREATE INDEX IF NOT EXISTS idx_system_created ON system_logs(created_at)");
+                @$db->exec("CREATE INDEX IF NOT EXISTS idx_error_type ON error_logs(error_type)");
+                @$db->exec("CREATE INDEX IF NOT EXISTS idx_error_created ON error_logs(created_at)");
+            } catch (\Exception $e) {
+                // Tablo oluşturma hatası kritik değil, devam et
+                error_log("SuperAdmin table creation error (non-critical): " . $e->getMessage());
+            }
+        }
         
         // Reklamlar Tablosu
         $db->exec("CREATE TABLE IF NOT EXISTS ads (
