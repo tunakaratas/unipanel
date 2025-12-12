@@ -7539,22 +7539,7 @@ function loadMoreSuperadminEvents() {
             }
         }
 
-        // updatePlanDetails zaten window objesinde tanımlı, bu duplicate'i kaldır
-
-            if (tier === 'standard') {
-                totalPrice = 0;
-                details = 'Standart plan ücretsizdir';
-            } else if (tier === 'professional') {
-                totalPrice = 250 * months;
-                details = `${months} ay × 250 TL = ${totalPrice} TL`;
-            } else if (tier === 'business') {
-                totalPrice = 500 * months;
-                details = `${months} ay × 500 TL = ${totalPrice} TL`;
-            }
-
-            document.getElementById('totalPrice').textContent = totalPrice.toLocaleString('tr-TR') + ' TL';
-            document.getElementById('planDetails').textContent = details;
-        }
+        // updatePlanDetails zaten window objesinde tanımlı (satır 7463), duplicate kaldırıldı
 
         function toggleCommunityStatus(community) {
             const isActive = document.querySelector(`button[onclick="toggleCommunityStatus('${community}')"]`).textContent.trim() === 'Kapat';
