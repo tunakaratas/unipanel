@@ -3581,7 +3581,7 @@ foreach ($community_details as $details) {
                                     <div class="relative">
                                         <input type="text" id="communitySearch" placeholder="Topluluk adı, klasör veya üniversite..." 
                                                onkeyup="if(event.key==='Enter') window.doSearch();"
-                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400">
                                         <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
@@ -3594,7 +3594,7 @@ foreach ($community_details as $details) {
                                     <div class="relative">
                                         <input type="text" id="filterUniversity" placeholder="Üniversite adı..." 
                                                onkeyup="if(event.key==='Enter') window.doSearch();"
-                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400">
                                         <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                         </svg>
@@ -3660,7 +3660,7 @@ foreach ($community_details as $details) {
                                         $subscription = $community_details[$community]['subscription'] ?? null;
                                         $tier = $subscription ? ($subscription['tier'] ?? 'standard') : 'none';
                                     ?>
-                                        <div class="community-item group bg-white rounded-xl border-2 border-gray-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 overflow-hidden" 
+                                        <div class="community-item group bg-white rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-300 overflow-hidden" 
                                              data-name="<?= strtolower(htmlspecialchars($community_details[$community]['name'] ?? $community)) ?>" 
                                              data-folder="<?= strtolower(htmlspecialchars($community)) ?>" 
                                              data-university="<?= strtolower(htmlspecialchars($community_details[$community]['university'] ?? '')) ?>"
@@ -3671,8 +3671,8 @@ foreach ($community_details as $details) {
                                             <div class="p-6 border-b-2 border-gray-100">
                                                 <div class="flex items-start justify-between mb-4">
                                                     <div class="flex items-center gap-4 flex-1 min-w-0">
-                                                        <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center border-2 border-purple-200 flex-shrink-0">
-                                                            <svg class="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <div class="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-gray-200 flex-shrink-0">
+                                                            <svg class="w-7 h-7 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                                             </svg>
                                                         </div>
@@ -3680,7 +3680,7 @@ foreach ($community_details as $details) {
                                                             <h3 class="text-lg font-bold text-gray-900 mb-1 truncate"><?= isset($community_details[$community]['name']) ? htmlspecialchars($community_details[$community]['name']) : htmlspecialchars($community) ?></h3>
                                                             <p class="text-sm text-gray-500 truncate"><?= htmlspecialchars($community) ?></p>
                                                             <?php if (isset($community_details[$community]['university']) && !empty($community_details[$community]['university'])): ?>
-                                                            <p class="text-xs text-purple-600 mt-1 truncate font-medium"><?= htmlspecialchars($community_details[$community]['university']) ?></p>
+                                                            <p class="text-xs text-gray-600 mt-1 truncate font-medium"><?= htmlspecialchars($community_details[$community]['university']) ?></p>
                                                             <?php endif; ?>
                                                         </div>
                                                     </div>
@@ -3703,9 +3703,9 @@ foreach ($community_details as $details) {
                                                         <div class="text-xl font-bold text-gray-900 mb-1"><?= isset($community_details[$community]['members']) ? $community_details[$community]['members'] : '0' ?></div>
                                                         <div class="text-xs text-gray-600 font-medium">Üye</div>
                                                     </div>
-                                                    <div class="bg-purple-50 rounded-lg p-3 text-center border-2 border-purple-200">
-                                                        <div class="text-xl font-bold text-purple-700 mb-1"><?= isset($community_details[$community]['events']) ? $community_details[$community]['events'] : '0' ?></div>
-                                                        <div class="text-xs text-purple-600 font-medium">Etkinlik</div>
+                                                    <div class="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
+                                                        <div class="text-xl font-bold text-gray-900 mb-1"><?= isset($community_details[$community]['events']) ? $community_details[$community]['events'] : '0' ?></div>
+                                                        <div class="text-xs text-gray-600 font-medium">Etkinlik</div>
                                                     </div>
                                                     <div class="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
                                                         <div class="text-xl font-bold text-gray-900 mb-1"><?= isset($community_details[$community]['banned']) ? $community_details[$community]['banned'] : '0' ?></div>
@@ -3727,18 +3727,18 @@ foreach ($community_details as $details) {
                                                     $endDate = $subscription['end_date'] ?? null;
                                                     $daysRemaining = $subscription['days_remaining'] ?? null;
                                                 ?>
-                                                <div class="mb-4 bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+                                                <div class="mb-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
                                                     <div class="flex items-center justify-between">
                                                         <div class="flex items-center gap-3">
-                                                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center border-2 border-purple-300">
-                                                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-300">
+                                                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 8h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
                                                                 </svg>
                                                             </div>
                                                             <div>
-                                                                <div class="text-sm font-bold text-purple-900"><?= htmlspecialchars($tierLabel) ?> Plan</div>
+                                                                <div class="text-sm font-bold text-gray-900"><?= htmlspecialchars($tierLabel) ?> Plan</div>
                                                                 <?php if ($endDate && $daysRemaining !== null): ?>
-                                                                    <div class="text-xs text-purple-700 mt-0.5">
+                                                                    <div class="text-xs text-gray-600 mt-0.5">
                                                                         <?php if ($daysRemaining > 0): ?>
                                                                             <?= $daysRemaining ?> gün kaldı
                                                                         <?php else: ?>
@@ -3750,8 +3750,8 @@ foreach ($community_details as $details) {
                                                         </div>
                                                         <?php if ($endDate && $daysRemaining !== null && $daysRemaining > 0): ?>
                                                             <div class="text-right">
-                                                                <div class="text-xs text-purple-600 mb-1">Bitiş</div>
-                                                                <div class="text-sm font-semibold text-purple-900"><?= date('d.m.Y', strtotime($endDate)) ?></div>
+                                                                <div class="text-xs text-gray-600 mb-1">Bitiş</div>
+                                                                <div class="text-sm font-semibold text-gray-900"><?= date('d.m.Y', strtotime($endDate)) ?></div>
                                                             </div>
                                                         <?php endif; ?>
                                                     </div>
@@ -3762,20 +3762,20 @@ foreach ($community_details as $details) {
                                                 <div class="space-y-3">
                                                     <!-- Topluluk Başkanı -->
                                                     <?php if (isset($community_details[$community]['president']) && !empty($community_details[$community]['president']['name'])): ?>
-                                                    <div class="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+                                                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
                                                         <div class="flex items-center justify-between mb-3">
-                                                            <h4 class="text-xs font-bold text-purple-900 flex items-center uppercase tracking-wider">
-                                                                <svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <h4 class="text-xs font-bold text-gray-900 flex items-center uppercase tracking-wider">
+                                                                <svg class="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
                                                                 </svg>
                                                                 Başkan
                                                             </h4>
-                                                            <span class="px-2 py-1 bg-purple-200 text-purple-800 text-xs font-bold rounded-full">Lider</span>
+                                                            <span class="px-2 py-1 bg-gray-200 text-gray-800 text-xs font-bold rounded-full">Lider</span>
                                                         </div>
                                                         <div class="space-y-2">
                                                             <div class="font-bold text-gray-900 text-sm"><?= isset($community_details[$community]['president']['name']) ? htmlspecialchars($community_details[$community]['president']['name']) : 'Bilgi Yok' ?></div>
                                                             <?php if (isset($community_details[$community]['president']['email'])): ?>
-                                                            <div class="flex items-center gap-2 text-xs text-purple-700">
+                                                            <div class="flex items-center gap-2 text-xs text-gray-600">
                                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                                                                 </svg>
@@ -3783,7 +3783,7 @@ foreach ($community_details as $details) {
                                                             </div>
                                                             <?php endif; ?>
                                                             <?php if (isset($community_details[$community]['president']['phone']) && !empty($community_details[$community]['president']['phone'])): ?>
-                                                            <div class="flex items-center gap-2 text-xs text-purple-700">
+                                                            <div class="flex items-center gap-2 text-xs text-gray-600">
                                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                                                                 </svg>
@@ -3819,23 +3819,23 @@ foreach ($community_details as $details) {
                                                     <div class="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
                                                         <div class="flex items-center justify-between mb-3">
                                                             <h4 class="text-xs font-bold text-gray-900 flex items-center uppercase tracking-wider">
-                                                                <svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <svg class="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                                                 </svg>
                                                                 Yönetim Kurulu
                                                             </h4>
-                                                            <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded-full border border-purple-200"><?= $board_count ?> Üye</span>
+                                                            <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-bold rounded-full border border-gray-200"><?= $board_count ?> Üye</span>
                                                         </div>
                                                         <div class="space-y-2">
                                                             <?php foreach (array_slice($board_members_list, 0, 3) as $bm): ?>
                                                             <div class="flex items-center justify-between text-xs bg-white rounded-lg p-2 border border-gray-200">
                                                                 <div class="flex items-center gap-2">
-                                                                    <div class="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                                                                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                                                                     <span class="font-semibold text-gray-700"><?= htmlspecialchars($bm['role']) ?>:</span>
                                                                     <span class="text-gray-600"><?= htmlspecialchars($bm['name']) ?></span>
                                                                 </div>
                                                                 <?php if (!empty($bm['email'])): ?>
-                                                                <a href="mailto:<?= htmlspecialchars($bm['email']) ?>" class="text-purple-600 hover:text-purple-800">
+                                                                <a href="mailto:<?= htmlspecialchars($bm['email']) ?>" class="text-gray-600 hover:text-gray-800">
                                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                                                                     </svg>
@@ -3844,7 +3844,7 @@ foreach ($community_details as $details) {
                                                             </div>
                                                             <?php endforeach; ?>
                                                             <?php if ($board_count > 3): ?>
-                                                            <div class="text-xs text-purple-700 font-medium text-center pt-1">
+                                                            <div class="text-xs text-gray-600 font-medium text-center pt-1">
                                                                 +<?= $board_count - 3 ?> üye daha
                                                             </div>
                                                             <?php endif; ?>
@@ -3856,10 +3856,10 @@ foreach ($community_details as $details) {
                                             </div>
                                             
                                             <!-- Card Footer - Action Buttons - Modern ve Çalışır -->
-                                            <div class="p-6 pt-4 bg-gradient-to-br from-gray-50 to-purple-50 border-t-2 border-purple-200">
+                                            <div class="p-6 pt-4 bg-gray-50 border-t border-gray-200">
                                                 <!-- Ana Butonlar -->
                                                 <div class="grid grid-cols-2 gap-3 mb-3">
-                                                    <a href="../communities/<?= urlencode($community) ?>/login.php?auto_access=true&superadmin_login=<?= urlencode(superadmin_expected_token()) ?>" target="_blank" class="group px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105">
+                                                    <a href="../communities/<?= urlencode($community) ?>/login.php?auto_access=true&superadmin_login=<?= urlencode(superadmin_expected_token()) ?>" target="_blank" class="group px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-md hover:shadow-lg">
                                                         <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                                         </svg>
