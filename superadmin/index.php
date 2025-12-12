@@ -5471,7 +5471,6 @@ let isLoadingCommunities = false;
         const communityItems = document.querySelectorAll('.community-item');
         
         if (communityItems.length === 0) {
-            console.log('No community items found');
             return;
         }
         
@@ -5622,12 +5621,9 @@ let isLoadingCommunities = false;
     
     // Sayfa yüklendiğinde başlat
     function init() {
-        console.log('Initializing filter system...');
-        
         // DOM hazır olana kadar bekle
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                console.log('DOMContentLoaded fired');
                 setTimeout(function() {
                     setupEventListeners();
                     performFilter();
@@ -5635,7 +5631,6 @@ let isLoadingCommunities = false;
             });
         } else {
             // DOM zaten yüklü
-            console.log('DOM already loaded');
             setTimeout(function() {
                 setupEventListeners();
                 performFilter();
@@ -5659,7 +5654,6 @@ let isLoadingCommunities = false;
                 childList: true,
                 subtree: true
             });
-            console.log('MutationObserver set up');
         }
     }, 500);
     
