@@ -3346,6 +3346,7 @@ foreach ($community_details as $details) {
             // Modal'ı göster
             modal.style.display = 'flex';
             modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Sayfa kaydırmayı engelle
         } catch (error) {
             console.error('openAddPresidentModal hatası:', error);
             alert('Modal açılırken hata oluştu: ' + error.message);
@@ -3358,6 +3359,7 @@ foreach ($community_details as $details) {
             if (modal) {
                 modal.style.display = 'none';
                 modal.classList.add('hidden');
+                document.body.style.overflow = ''; // Sayfa kaydırmayı geri aç
             }
         } catch (error) {
             console.error('closeAddPresidentModal hatası:', error);
@@ -3432,8 +3434,9 @@ foreach ($community_details as $details) {
     window.openCreateModal = function() {
         const modal = document.getElementById('createModal');
         if (modal) {
-            modal.classList.remove('hidden');
             modal.style.display = 'flex';
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Sayfa kaydırmayı engelle
         }
     };
     
@@ -3442,6 +3445,7 @@ foreach ($community_details as $details) {
         if (modal) {
             modal.classList.add('hidden');
             modal.style.display = 'none';
+            document.body.style.overflow = ''; // Sayfa kaydırmayı geri aç
         }
     };
     </script>
@@ -6869,7 +6873,7 @@ function loadMoreSuperadminEvents() {
         <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4 my-8">
             <div class="flex items-center justify-between p-6 border-b border-gray-200">
                 <h3 class="text-xl font-semibold text-gray-800">Plan & SMS Yönetimi</h3>
-                <button onclick="closeAssignPlanSmsModal()" class="text-gray-400 hover:text-gray-600">
+                <button onclick="window.closeAssignPlanSmsModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -7269,6 +7273,7 @@ function loadMoreSuperadminEvents() {
                 modal.style.display = 'flex';
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
+                document.body.style.overflow = 'hidden'; // Sayfa kaydırmayı engelle
             } catch (error) {
                 console.error('openEditCommunityModal hatası:', error);
                 alert('Modal açılırken hata oluştu: ' + error.message);
@@ -7405,6 +7410,7 @@ function loadMoreSuperadminEvents() {
                 modal.style.display = 'flex';
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
+                document.body.style.overflow = 'hidden'; // Sayfa kaydırmayı engelle
             } catch (error) {
                 console.error('openAssignPlanSmsModal hatası:', error);
                 alert('Modal açılırken hata oluştu: ' + error.message);
@@ -7415,9 +7421,10 @@ function loadMoreSuperadminEvents() {
             try {
                 const modal = document.getElementById('assignPlanSmsModal');
                 if (modal) {
+                    modal.style.display = 'none';
                     modal.classList.add('hidden');
                     modal.classList.remove('flex');
-                    modal.style.display = 'none';
+                    document.body.style.overflow = ''; // Sayfa kaydırmayı geri aç
                 }
             } catch (error) {
                 console.error('closeAssignPlanSmsModal hatası:', error);
@@ -7530,8 +7537,10 @@ function loadMoreSuperadminEvents() {
             try {
                 const modal = document.getElementById('editCommunityModal');
                 if (modal) {
+                    modal.style.display = 'none';
                     modal.classList.add('hidden');
                     modal.classList.remove('flex');
+                    document.body.style.overflow = ''; // Sayfa kaydırmayı geri aç
                 }
             } catch (error) {
                 console.error('closeEditCommunityModal hatası:', error);
@@ -7730,7 +7739,7 @@ function loadMoreSuperadminEvents() {
                 <div class="p-6 border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xl font-semibold text-gray-800">Yeni Topluluk Oluştur</h3>
-                        <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
+                        <button onclick="window.closeCreateModal()" class="text-gray-400 hover:text-gray-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
