@@ -5499,31 +5499,15 @@ let communitiesOffset = <?= isset($has_more_communities) && $has_more_communitie
 let allCommunities = <?= json_encode($communities ?? []) ?>;
 let isLoadingCommunities = false;
 
-// Topluluk Arama ve Filtreleme Sistemi - Tamamen Yeniden Yazıldı
-(function() {
-    'use strict';
-    
-    // Arama fonksiyonu - Topluluk isimlerini HTML'den çeker
-    function performSearch() {
-        console.log('=== performSearch() çağrıldı ===');
-        
+// Topluluk Arama ve Filtreleme Sistemi - EN BASİT VERSİYON
+// Global fonksiyonlar - HTML'deki inline handler'lar bunları çağırır
+window.filterCommunities = function() {
+    try {
         // Tüm topluluk kartlarını al
         const communityItems = document.querySelectorAll('.community-item');
-        console.log('Bulunan topluluk kartı sayısı:', communityItems.length);
         
         if (communityItems.length === 0) {
-            console.warn('Topluluk kartı bulunamadı, retry yapılıyor...');
-            // Retry - belki henüz yüklenmedi
-            setTimeout(function() {
-                const retryItems = document.querySelectorAll('.community-item');
-                console.log('Retry - Bulunan kart sayısı:', retryItems.length);
-                if (retryItems.length > 0) {
-                    performSearch();
-                } else {
-                    console.error('Retry sonrası da kart bulunamadı!');
-                }
-            }, 500);
-            return;
+            return; // Henüz kartlar yüklenmemiş
         }
         
         // Arama input'larını al
@@ -5539,17 +5523,10 @@ let isLoadingCommunities = false;
         const statusFilter = statusSelect ? statusSelect.value : 'all';
         const tierFilter = tierSelect ? tierSelect.value : 'all';
         
-        console.log('Arama terimleri:', {
-            searchTerm: searchTerm,
-            universityTerm: universityTerm,
-            statusFilter: statusFilter,
-            tierFilter: tierFilter
-        });
-        
         let visibleCount = 0;
         
         // Her bir topluluk kartını kontrol et
-        communityItems.forEach(function(item, index) {
+        communityItems.forEach(function(item) {
             // Topluluk ismini HTML'den çek (h3 tag'inden)
             const nameElement = item.querySelector('h3');
             const nameText = nameElement ? nameElement.textContent.trim().toLowerCase() : '';
@@ -5560,16 +5537,6 @@ let isLoadingCommunities = false;
             const university = (item.getAttribute('data-university') || '').toLowerCase();
             const status = item.getAttribute('data-status') || '';
             const tier = item.getAttribute('data-tier') || 'none';
-            
-            // İlk 2 kart için debug
-            if (index < 2) {
-                console.log('Kart ' + (index + 1) + ':', {
-                    nameText: nameText,
-                    dataName: dataName,
-                    folder: folder,
-                    university: university
-                });
-            }
             
             // Arama filtresi - topluluk ismi, klasör veya üniversite içinde arar
             const matchesSearch = !searchTerm || 
@@ -5600,8 +5567,6 @@ let isLoadingCommunities = false;
             }
         });
         
-        console.log('Gösterilen topluluk sayısı:', visibleCount);
-        
         // Sonuç sayısını güncelle
         if (filteredCount) {
             const hasActiveFilters = searchTerm || universityTerm || statusFilter !== 'all' || tierFilter !== 'all';
@@ -5613,10 +5578,15 @@ let isLoadingCommunities = false;
                 filteredCount.classList.add('hidden');
             }
         }
+    } catch (error) {
+        console.error('Arama hatası:', error);
+        alert('Arama sırasında bir hata oluştu: ' + error.message);
     }
-    
-    // Filtreleri temizle
-    function clearAllFilters() {
+};
+
+// Filtreleri temizle
+window.clearFilters = function() {
+    try {
         const searchInput = document.getElementById('communitySearch');
         const universityInput = document.getElementById('filterUniversity');
         const statusSelect = document.getElementById('filterStatus');
@@ -5627,225 +5597,11 @@ let isLoadingCommunities = false;
         if (statusSelect) statusSelect.value = 'all';
         if (tierSelect) tierSelect.value = 'all';
         
-        performSearch();
+        window.filterCommunities();
+    } catch (error) {
+        console.error('Temizleme hatası:', error);
     }
-    
-    // Global fonksiyonlar - Her zaman erişilebilir olmalı
-    window.filterCommunities = function() {
-        console.log('filterCommunities çağrıldı');
-        try {
-            performSearch();
-        } catch (error) {
-            console.error('Arama hatası:', error);
-            alert('Arama sırasında bir hata oluştu: ' + error.message);
-        }
-    };
-    
-    window.clearFilters = function() {
-        console.log('clearFilters çağrıldı');
-        try {
-            clearAllFilters();
-        } catch (error) {
-            console.error('Temizleme hatası:', error);
-        }
-    };
-    
-    // Test fonksiyonu - Debug için
-    window.testSearch = function() {
-        const items = document.querySelectorAll('.community-item');
-        const searchInput = document.getElementById('communitySearch');
-        const searchBtn = document.getElementById('searchCommunityBtn');
-        const universityInput = document.getElementById('filterUniversity');
-        const universityBtn = document.getElementById('searchUniversityBtn');
-        
-        console.log('=== TEST SONUÇLARI ===');
-        console.log('Topluluk kartı sayısı:', items.length);
-        console.log('Arama input:', searchInput ? 'Var' : 'YOK');
-        console.log('Arama butonu:', searchBtn ? 'Var' : 'YOK');
-        console.log('Üniversite input:', universityInput ? 'Var' : 'YOK');
-        console.log('Üniversite butonu:', universityBtn ? 'Var' : 'YOK');
-        
-        if (items.length > 0) {
-            const firstItem = items[0];
-            const h3 = firstItem.querySelector('h3');
-            console.log('İlk kart bilgileri:');
-            console.log('  H3 text:', h3 ? h3.textContent : 'Bulunamadı');
-            console.log('  Data-name:', firstItem.getAttribute('data-name'));
-            console.log('  Data-folder:', firstItem.getAttribute('data-folder'));
-            console.log('  Data-university:', firstItem.getAttribute('data-university'));
-        }
-        
-        // Event listener kontrolü
-        if (searchBtn) {
-            console.log('Arama butonu onclick:', typeof searchBtn.onclick);
-        }
-        if (searchInput) {
-            console.log('Arama input onkeyup:', typeof searchInput.onkeyup);
-        }
-        
-        alert('Test tamamlandı! Console\'a bakın (F12)');
-    };
-    
-    // Tüm event listener'ları kur - Basit ve direkt yaklaşım
-    function setupAllListeners() {
-        console.log('Event listener\'lar kuruluyor...');
-        
-        // Arama butonları
-        const searchCommunityBtn = document.getElementById('searchCommunityBtn');
-        const searchUniversityBtn = document.getElementById('searchUniversityBtn');
-        
-        if (searchCommunityBtn) {
-            searchCommunityBtn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Arama butonu tıklandı');
-                performSearch();
-            };
-            console.log('Arama butonu listener eklendi');
-        } else {
-            console.error('Arama butonu bulunamadı!');
-        }
-        
-        if (searchUniversityBtn) {
-            searchUniversityBtn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Üniversite arama butonu tıklandı');
-                performSearch();
-            };
-            console.log('Üniversite arama butonu listener eklendi');
-        } else {
-            console.error('Üniversite arama butonu bulunamadı!');
-        }
-        
-        // Enter tuşu
-        const searchInput = document.getElementById('communitySearch');
-        const universityInput = document.getElementById('filterUniversity');
-        
-        if (searchInput) {
-            searchInput.onkeyup = function(e) {
-                if (e.key === 'Enter') {
-                    console.log('Enter tuşu basıldı (genel arama)');
-                    performSearch();
-                }
-            };
-            console.log('Genel arama input listener eklendi');
-        } else {
-            console.error('Genel arama input bulunamadı!');
-        }
-        
-        if (universityInput) {
-            universityInput.onkeyup = function(e) {
-                if (e.key === 'Enter') {
-                    console.log('Enter tuşu basıldı (üniversite)');
-                    performSearch();
-                }
-            };
-            console.log('Üniversite input listener eklendi');
-        } else {
-            console.error('Üniversite input bulunamadı!');
-        }
-        
-        // Select'ler
-        const statusSelect = document.getElementById('filterStatus');
-        const tierSelect = document.getElementById('filterTier');
-        
-        if (statusSelect) {
-            statusSelect.onchange = function() {
-                console.log('Durum filtresi değişti');
-                performSearch();
-            };
-            console.log('Durum select listener eklendi');
-        }
-        
-        if (tierSelect) {
-            tierSelect.onchange = function() {
-                console.log('Plan filtresi değişti');
-                performSearch();
-            };
-            console.log('Plan select listener eklendi');
-        }
-        
-        // Temizle butonu
-        const clearBtn = document.getElementById('clearFiltersBtn');
-        if (clearBtn) {
-            clearBtn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Temizle butonu tıklandı');
-                clearAllFilters();
-            };
-            console.log('Temizle butonu listener eklendi');
-        } else {
-            console.error('Temizle butonu bulunamadı!');
-        }
-        
-        console.log('Tüm event listener\'lar kuruldu');
-    }
-    
-    // Sayfa yüklendiğinde başlat - Çoklu retry ile
-    function init() {
-        let retryCount = 0;
-        const maxRetries = 10;
-        
-        function doInit() {
-            const searchInput = document.getElementById('communitySearch');
-            const searchBtn = document.getElementById('searchCommunityBtn');
-            
-            if (!searchInput || !searchBtn) {
-                retryCount++;
-                if (retryCount < maxRetries) {
-                    setTimeout(doInit, 200);
-                    return;
-                }
-            }
-            
-            setupAllListeners();
-            
-            // İlk yüklemede tüm kartları göster
-            setTimeout(function() {
-                performSearch();
-            }, 200);
-        }
-        
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(doInit, 300);
-            });
-        } else {
-            setTimeout(doInit, 300);
-        }
-    }
-    
-    // Başlat
-    init();
-    
-    // Ekstra güvenlik - window yüklendiğinde de dene
-    window.addEventListener('load', function() {
-        setTimeout(function() {
-            setupAllListeners();
-        }, 500);
-    });
-    
-    // DOM değişikliklerini izle
-    setTimeout(function() {
-        const communitiesListContainer = document.getElementById('communitiesList');
-        if (communitiesListContainer) {
-            const observer = new MutationObserver(function() {
-                // Yeni item'lar eklendiğinde filtrelemeyi yeniden çalıştır
-                setTimeout(function() {
-                    performSearch();
-                }, 100);
-            });
-            
-            observer.observe(communitiesListContainer, {
-                childList: true,
-                subtree: true
-            });
-        }
-    }, 1000);
-    
-})();
+};
 
 function loadMoreCommunities() {
     if (isLoadingCommunities || !allCommunities || allCommunities.length === 0) return;
