@@ -14,14 +14,57 @@ if (!defined('SQLITE3_NULL')) define('SQLITE3_NULL', 5);
 
 // SQLite3 bağlantısı oluştur (retry ile)
 function getSQLite3Connection($dbPath, $retries = 3) {
+    // Veritabanı dosyası izinlerini kontrol et ve düzelt
+    if (file_exists($dbPath)) {
+        if (!is_writable($dbPath)) {
+            @chmod($dbPath, SUPERADMIN_FILE_PERMS);
+        }
+        // Klasörün de yazılabilir olduğundan emin ol
+        $db_dir = dirname($dbPath);
+        if (!is_writable($db_dir)) {
+            @chmod($db_dir, SUPERADMIN_DIR_PERMS);
+        }
+    } else {
+        // Dosya yoksa klasörün yazılabilir olduğundan emin ol
+        $db_dir = dirname($dbPath);
+        if (!is_dir($db_dir)) {
+            @mkdir($db_dir, SUPERADMIN_DIR_PERMS, true);
+        }
+        if (!is_writable($db_dir)) {
+            @chmod($db_dir, SUPERADMIN_DIR_PERMS);
+        }
+    }
+    
     for ($i = 0; $i < $retries; $i++) {
         try {
             $db = new SQLite3($dbPath);
             $db->busyTimeout(10000); // 10 saniye timeout
-            $db->exec('PRAGMA journal_mode = WAL');
-            $db->exec('PRAGMA synchronous = NORMAL');
+            
+            // Veritabanı yazılabilir mi kontrol et
+            $is_writable = is_writable($dbPath);
+            if (!$is_writable) {
+                // İzinleri tekrar düzelt
+                @chmod($dbPath, SUPERADMIN_FILE_PERMS);
+                @chmod(dirname($dbPath), SUPERADMIN_DIR_PERMS);
+            }
+            
+            // PRAGMA komutlarını çalıştır (sadece yazılabilirse)
+            if ($is_writable || is_writable($dbPath)) {
+                $db->exec('PRAGMA journal_mode = WAL');
+                $db->exec('PRAGMA synchronous = NORMAL');
+            } else {
+                // Readonly modda çalış
+                $db->exec('PRAGMA query_only = 1');
+            }
+            
             return $db;
         } catch (Exception $e) {
+            // İzin sorunu varsa düzelt ve tekrar dene
+            if (strpos($e->getMessage(), 'readonly') !== false || strpos($e->getMessage(), 'permission') !== false) {
+                @chmod($dbPath, SUPERADMIN_FILE_PERMS);
+                @chmod(dirname($dbPath), SUPERADMIN_DIR_PERMS);
+            }
+            
             if ($i < $retries - 1) {
                 usleep(100000 * ($i + 1)); // 100ms, 200ms, 300ms...
                 continue;
@@ -1291,22 +1334,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($action ?? '') === 'create' || ($
                                     
                                     $db->close();
                                     
-                                    // Public index cache'ini temizle (yeni topluluk eklendi)
+                                    // İzin kontrolü ve düzeltme - veritabanı dosyası ve tüm klasörler
                                     try {
-                                        require_once __DIR__ . '/../lib/core/Cache.php';
-                                        $cache = \UniPanel\Core\Cache::getInstance(__DIR__ . '/../system/cache');
-                                        // Tüm cache versiyonlarını temizle
-                                        $cache->delete('all_communities_list_v2');
-                                        $cache->delete('all_communities_list_v3');
-                                        // Pattern ile tüm ilgili cache'leri temizle
-                                        $cacheFiles = glob(__DIR__ . '/../system/cache/all_communities_list_*.cache');
-                                        foreach ($cacheFiles as $cacheFile) {
-                                            @unlink($cacheFile);
+                                        // Veritabanı dosyası izinlerini kontrol et ve düzelt
+                                        if (file_exists($db_path)) {
+                                            if (!is_writable($db_path)) {
+                                                @chmod($db_path, SUPERADMIN_FILE_PERMS);
+                                            }
+                                        }
+                                        
+                                        // Ana klasör izinlerini kontrol et
+                                        if (is_dir($full_path) && !is_writable($full_path)) {
+                                            @chmod($full_path, SUPERADMIN_DIR_PERMS);
+                                        }
+                                        
+                                        // Alt klasörlerin izinlerini kontrol et ve düzelt
+                                        $dirs_to_check = [
+                                            $full_path . '/public',
+                                            $full_path . '/assets',
+                                            $full_path . '/assets/images',
+                                            $full_path . '/assets/images/partner-logos',
+                                            $full_path . '/assets/videos',
+                                            $full_path . '/assets/videos/events'
+                                        ];
+                                        
+                                        foreach ($dirs_to_check as $dir) {
+                                            if (is_dir($dir) && !is_writable($dir)) {
+                                                @chmod($dir, SUPERADMIN_PUBLIC_DIR_PERMS);
+                                            }
+                                        }
+                                        
+                                        // .htaccess dosyası varsa izinlerini kontrol et
+                                        $htaccess_path = $full_path . '/.htaccess';
+                                        if (file_exists($htaccess_path) && !is_readable($htaccess_path)) {
+                                            @chmod($htaccess_path, SUPERADMIN_FILE_PERMS);
+                                        }
+                                        
+                                        // PHP dosyalarının izinlerini kontrol et
+                                        $php_files = [
+                                            $full_path . '/index.php',
+                                            $full_path . '/login.php',
+                                            $full_path . '/loading.php',
+                                            $full_path . '/input_validator.php',
+                                            $full_path . '/session_security.php'
+                                        ];
+                                        
+                                        foreach ($php_files as $file) {
+                                            if (file_exists($file) && !is_readable($file)) {
+                                                @chmod($file, SUPERADMIN_FILE_PERMS);
+                                            }
                                         }
                                     } catch (Exception $e) {
-                                        // Cache temizleme hatası kritik değil
-                                        error_log("Cache temizleme hatası: " . $e->getMessage());
+                                        error_log("İzin kontrolü hatası: " . $e->getMessage());
                                     }
+                                    
+                                    // Cache'i temizle (yeni topluluk eklendi)
+                                    clearCommunitiesCache();
                                     
                                     $success = "Topluluk başarıyla oluşturuldu: " . $community_name . " | Topluluk Kodu: <strong>" . $community_code . "</strong>";
                                     // Sayfayı yenile ki yeni topluluk listede görünsün
@@ -1543,19 +1626,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'approve_request') {
                         $update_stmt->execute();
                         $db->close();
                         
-                        // Cache temizle
-                        try {
-                            require_once __DIR__ . '/../lib/core/Cache.php';
-                            $cache = \UniPanel\Core\Cache::getInstance(__DIR__ . '/../system/cache');
-                            $cache->delete('all_communities_list_v2');
-                            $cache->delete('all_communities_list_v3');
-                            $cacheFiles = glob(__DIR__ . '/../system/cache/all_communities_list_*.cache');
-                            foreach ($cacheFiles as $cacheFile) {
-                                @unlink($cacheFile);
-                            }
-                        } catch (Exception $e) {
-                            error_log("Cache temizleme hatası: " . $e->getMessage());
-                        }
+                        // Cache'i temizle
+                        clearCommunitiesCache();
                         
                         $success = "Topluluk talebi onaylandı ve topluluk başarıyla aktifleştirildi!";
                         // Sayfayı yenile ki yeni topluluk listede görünsün
@@ -1682,19 +1754,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'approve_request') {
                                         $update_stmt->execute();
                                         $db->close();
                                         
-                                        // Cache temizle
-                                        try {
-                                            require_once __DIR__ . '/../lib/core/Cache.php';
-                                            $cache = \UniPanel\Core\Cache::getInstance(__DIR__ . '/../system/cache');
-                                            $cache->delete('all_communities_list_v2');
-                                            $cache->delete('all_communities_list_v3');
-                                            $cacheFiles = glob(__DIR__ . '/../system/cache/all_communities_list_*.cache');
-                                            foreach ($cacheFiles as $cacheFile) {
-                                                @unlink($cacheFile);
-                                            }
-                                        } catch (Exception $e) {
-                                            error_log("Cache temizleme hatası: " . $e->getMessage());
-                                        }
+                                        // Cache'i temizle
+                                        clearCommunitiesCache();
                                         
                                         $success = "Topluluk talebi onaylandı ve topluluk başarıyla oluşturuldu!";
                                         // Sayfayı yenile ki yeni topluluk listede görünsün
@@ -2904,6 +2965,35 @@ $cache_file = __DIR__ . '/../system/cache/communities_list.cache';
 $cache_duration = 300; // 5 dakika cache
 $use_cache = true;
 
+// Cache temizleme fonksiyonu
+function clearCommunitiesCache() {
+    $cache_file = __DIR__ . '/../system/cache/communities_list.cache';
+    
+    try {
+        // communities_list.cache dosyasını temizle
+        if (file_exists($cache_file)) {
+            @unlink($cache_file);
+        }
+        
+        // Public index cache'lerini temizle
+        require_once __DIR__ . '/../lib/core/Cache.php';
+        $cache = \UniPanel\Core\Cache::getInstance(__DIR__ . '/../system/cache');
+        $cache->delete('all_communities_list_v2');
+        $cache->delete('all_communities_list_v3');
+        
+        // Pattern ile tüm ilgili cache'leri temizle
+        $cacheFiles = glob(__DIR__ . '/../system/cache/all_communities_list_*.cache');
+        foreach ($cacheFiles as $cacheFile) {
+            @unlink($cacheFile);
+        }
+        
+        return true;
+    } catch (Exception $e) {
+        error_log("Cache temizleme hatası: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Cache kontrolü
 $communities = [];
 $community_details = [];
@@ -3096,9 +3186,14 @@ if (empty($communities) && is_dir(COMMUNITIES_DIR)) {
                     $subscription_is_active = false;
                     
                     try {
+                        // Veritabanı yazılabilir mi kontrol et
+                        if (!is_writable($db_path)) {
+                            @chmod($db_path, SUPERADMIN_FILE_PERMS);
+                            @chmod(dirname($db_path), SUPERADMIN_DIR_PERMS);
+                        }
+                        
                         require_once __DIR__ . '/../lib/payment/SubscriptionManager.php';
                         $subscriptionManager = new \UniPanel\Payment\SubscriptionManager($db, $dir);
-                        $subscriptionManager->createSubscriptionTable();
                         $subscription = $subscriptionManager->getSubscription();
                         
                         if ($subscription) {
@@ -3210,6 +3305,35 @@ if (empty($communities) && is_dir(COMMUNITIES_DIR)) {
                 }
             }
         }
+    }
+    
+    // Toplulukları oluşturulma tarihine göre sırala (yeni olanlar en üstte)
+    if (!empty($communities)) {
+        usort($communities, function($a, $b) use ($community_details) {
+            // Klasör oluşturma tarihini al
+            $path_a = COMMUNITIES_DIR . $a;
+            $path_b = COMMUNITIES_DIR . $b;
+            
+            $time_a = file_exists($path_a) ? filemtime($path_a) : 0;
+            $time_b = file_exists($path_b) ? filemtime($path_b) : 0;
+            
+            // Veritabanından created_at bilgisini kontrol et (varsa)
+            if (isset($community_details[$a]['admin']['created_at'])) {
+                $db_time_a = strtotime($community_details[$a]['admin']['created_at']);
+                if ($db_time_a > 0) {
+                    $time_a = max($time_a, $db_time_a);
+                }
+            }
+            if (isset($community_details[$b]['admin']['created_at'])) {
+                $db_time_b = strtotime($community_details[$b]['admin']['created_at']);
+                if ($db_time_b > 0) {
+                    $time_b = max($time_b, $db_time_b);
+                }
+            }
+            
+            // Yeni olanlar en üstte (büyükten küçüğe)
+            return $time_b <=> $time_a;
+        });
     }
     
     // Cache'i kaydet
@@ -5335,8 +5459,11 @@ let isLoadingCommunities = false;
         communityItems: null
     };
     
-    // Elementleri bul ve cache'le
-    function initElements() {
+    // Elementleri bul ve cache'le (retry mekanizması ile)
+    function initElements(retryCount = 0) {
+        const maxRetries = 10;
+        const retryDelay = 100; // ms
+        
         elements.searchInput = document.getElementById('communitySearch');
         elements.universityInput = document.getElementById('filterUniversity');
         elements.statusSelect = document.getElementById('filterStatus');
@@ -5348,8 +5475,21 @@ let isLoadingCommunities = false;
         
         // Elementlerin varlığını kontrol et
         if (!elements.communityItems || elements.communityItems.length === 0) {
-            console.warn('Community items not found');
-            return false;
+            if (retryCount < maxRetries) {
+                // Retry mekanizması - elementler henüz yüklenmemiş olabilir
+                setTimeout(function() {
+                    initElements(retryCount + 1);
+                }, retryDelay);
+                return false;
+            } else {
+                console.warn('Community items not found after ' + maxRetries + ' retries');
+                return false;
+            }
+        }
+        
+        // Tüm gerekli elementler bulundu
+        if (retryCount > 0) {
+            console.log('Community filter elements initialized after ' + retryCount + ' retries');
         }
         
         return true;
@@ -5357,8 +5497,13 @@ let isLoadingCommunities = false;
     
     // Filtreleme fonksiyonu
     function performFilter() {
+        // Elementler bulunamadıysa yeniden dene
         if (!elements.communityItems || elements.communityItems.length === 0) {
-            return;
+            // Community items'ı yeniden al
+            elements.communityItems = document.querySelectorAll('.community-item');
+            if (!elements.communityItems || elements.communityItems.length === 0) {
+                return;
+            }
         }
         
         let visibleCount = 0;
@@ -5526,9 +5671,35 @@ let isLoadingCommunities = false;
     // Başlat
     init();
     
+    // MutationObserver ile DOM değişikliklerini takip et
+    const communitiesListContainer = document.getElementById('communitiesList');
+    if (communitiesListContainer) {
+        const observer = new MutationObserver(function(mutations) {
+            let shouldReinit = false;
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // Yeni community-item'lar eklendi
+                    shouldReinit = true;
+                }
+            });
+            
+            if (shouldReinit) {
+                // Elementleri yeniden al
+                elements.communityItems = document.querySelectorAll('.community-item');
+                // Filtreleme durumunu koru
+                performFilter();
+            }
+        });
+        
+        observer.observe(communitiesListContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
     // Sayfa değiştiğinde yeniden başlat (AJAX navigasyon için)
     let lastUrl = location.href;
-    new MutationObserver(function() {
+    const urlObserver = new MutationObserver(function() {
         const url = location.href;
         if (url !== lastUrl) {
             lastUrl = url;
@@ -5539,7 +5710,8 @@ let isLoadingCommunities = false;
                 }
             }, 100);
         }
-    }).observe(document, { subtree: true, childList: true });
+    });
+    urlObserver.observe(document, { subtree: true, childList: true });
     
 })();
 

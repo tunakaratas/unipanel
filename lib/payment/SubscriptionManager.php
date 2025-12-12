@@ -23,8 +23,22 @@ class SubscriptionManager {
      * Abonelik tablosunu oluştur (Güçlendirilmiş - Gerçek Hayat Senaryoları İçin)
      */
     public function createSubscriptionTable() {
-        // Önce basit tabloyu oluştur
-        $this->db->exec("CREATE TABLE IF NOT EXISTS subscriptions (
+        try {
+            // Veritabanı yazılabilir mi kontrol et
+            $db_path = $this->db->filename ?? null;
+            if ($db_path && file_exists($db_path)) {
+                if (!is_writable($db_path)) {
+                    @chmod($db_path, 0644);
+                    @chmod(dirname($db_path), 0755);
+                }
+            }
+        } catch (\Exception $e) {
+            error_log("SubscriptionManager: Permission check failed - " . $e->getMessage());
+        }
+        
+        try {
+            // Önce basit tabloyu oluştur
+            $this->db->exec("CREATE TABLE IF NOT EXISTS subscriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             community_id TEXT NOT NULL,
             payment_id TEXT,
@@ -38,97 +52,147 @@ class SubscriptionManager {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
+        } catch (\Exception $e) {
+            // Readonly veritabanı hatası - sessizce devam et
+            if (strpos($e->getMessage(), 'readonly') !== false || strpos($e->getMessage(), 'no such table') !== false) {
+                error_log("SubscriptionManager: Cannot create subscriptions table (readonly or missing) - " . $e->getMessage());
+                return; // Tablo oluşturulamazsa devam etme
+            }
+            throw $e;
+        }
         
         // Yeni kolonları ekle (migration)
-        $this->migrateSubscriptionTable();
+        try {
+            $this->migrateSubscriptionTable();
+        } catch (\Exception $e) {
+            error_log("SubscriptionManager: Migration failed - " . $e->getMessage());
+            // Migration hatası kritik değil, devam et
+        }
         
         // Index oluştur (kolonlar eklendikten sonra)
         try {
             $columns = [];
             $result = $this->db->query("PRAGMA table_info(subscriptions)");
-            while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
-                $columns[] = $row['name'];
+            if ($result !== false) {
+                while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
+                    $columns[] = $row['name'];
+                }
             }
             
-            $this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_id ON subscriptions(payment_id) WHERE payment_id IS NOT NULL");
-            
-            // payment_token kolonu varsa index oluştur
-            if (in_array('payment_token', $columns)) {
-                $this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_token ON subscriptions(payment_token) WHERE payment_token IS NOT NULL");
-            }
-            
-            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_community_id ON subscriptions(community_id)");
-            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_payment_status ON subscriptions(payment_status)");
-            
-            // expires_at kolonu varsa index oluştur
-            if (in_array('expires_at', $columns)) {
-                $this->db->exec("CREATE INDEX IF NOT EXISTS idx_expires_at ON subscriptions(expires_at) WHERE expires_at IS NOT NULL");
+            // Veritabanı yazılabilirse index oluştur
+            $db_path = $this->db->filename ?? null;
+            if ($db_path && is_writable($db_path)) {
+                $this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_id ON subscriptions(payment_id) WHERE payment_id IS NOT NULL");
+                
+                // payment_token kolonu varsa index oluştur
+                if (in_array('payment_token', $columns)) {
+                    $this->db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_token ON subscriptions(payment_token) WHERE payment_token IS NOT NULL");
+                }
+                
+                $this->db->exec("CREATE INDEX IF NOT EXISTS idx_community_id ON subscriptions(community_id)");
+                $this->db->exec("CREATE INDEX IF NOT EXISTS idx_payment_status ON subscriptions(payment_status)");
+                
+                // expires_at kolonu varsa index oluştur
+                if (in_array('expires_at', $columns)) {
+                    $this->db->exec("CREATE INDEX IF NOT EXISTS idx_expires_at ON subscriptions(expires_at) WHERE expires_at IS NOT NULL");
+                }
             }
         } catch (\Exception $e) {
-            // Index zaten varsa hata vermez
-            error_log("Subscription index creation warning: " . $e->getMessage());
+            // Readonly hatası sessizce geç
+            if (strpos($e->getMessage(), 'readonly') === false) {
+                error_log("Subscription index creation warning: " . $e->getMessage());
+            }
         }
         
         // Subscription Logs Tablosu
-        $this->db->exec("CREATE TABLE IF NOT EXISTS subscription_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            subscription_id INTEGER,
-            community_id TEXT NOT NULL,
-            log_type TEXT NOT NULL,
-            log_message TEXT,
-            log_data TEXT,
-            ip_address TEXT,
-            user_agent TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
-        )");
+        try {
+            $this->db->exec("CREATE TABLE IF NOT EXISTS subscription_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subscription_id INTEGER,
+                community_id TEXT NOT NULL,
+                log_type TEXT NOT NULL,
+                log_message TEXT,
+                log_data TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
+            )");
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), 'readonly') === false) {
+                error_log("Subscription logs table creation warning: " . $e->getMessage());
+            }
+        }
         
         // Subscription Rate Limits Tablosu
-        $this->db->exec("CREATE TABLE IF NOT EXISTS subscription_rate_limits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            community_id TEXT NOT NULL,
-            ip_address TEXT,
-            action_type TEXT NOT NULL,
-            action_count INTEGER DEFAULT 0,
-            hour_timestamp TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )");
+        try {
+            $this->db->exec("CREATE TABLE IF NOT EXISTS subscription_rate_limits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                community_id TEXT NOT NULL,
+                ip_address TEXT,
+                action_type TEXT NOT NULL,
+                action_count INTEGER DEFAULT 0,
+                hour_timestamp TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), 'readonly') === false) {
+                error_log("Subscription rate limits table creation warning: " . $e->getMessage());
+            }
+        }
         
         // SMS Usage Tablosu - SMS kullanımını takip eder
-        $this->db->exec("CREATE TABLE IF NOT EXISTS sms_usage (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            community_id TEXT NOT NULL,
-            recipient_count INTEGER NOT NULL,
-            message_content TEXT,
-            provider TEXT,
-            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            month_year TEXT NOT NULL,
-            FOREIGN KEY (community_id) REFERENCES subscriptions(community_id)
-        )");
-        
-        // SMS Usage için index
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_community_month ON sms_usage(community_id, month_year)");
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_sent_at ON sms_usage(sent_at)");
+        try {
+            $this->db->exec("CREATE TABLE IF NOT EXISTS sms_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                community_id TEXT NOT NULL,
+                recipient_count INTEGER NOT NULL,
+                message_content TEXT,
+                provider TEXT,
+                sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                month_year TEXT NOT NULL,
+                FOREIGN KEY (community_id) REFERENCES subscriptions(community_id)
+            )");
+            
+            // SMS Usage için index
+            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_community_month ON sms_usage(community_id, month_year)");
+            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_usage_sent_at ON sms_usage(sent_at)");
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), 'readonly') === false) {
+                error_log("SMS usage table creation warning: " . $e->getMessage());
+            }
+        }
         
         // SMS Kredileri Tablosu (Superadmin tarafından tahsis edilen SMS paketleri)
-        $this->db->exec("CREATE TABLE IF NOT EXISTS sms_credits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            community_id TEXT NOT NULL,
-            credits INTEGER NOT NULL DEFAULT 0,
-            package_name TEXT,
-            assigned_by TEXT DEFAULT 'superadmin',
-            assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            notes TEXT
-        )");
-        
-        // SMS Credits için index
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_credits_community ON sms_credits(community_id)");
+        try {
+            $this->db->exec("CREATE TABLE IF NOT EXISTS sms_credits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                community_id TEXT NOT NULL,
+                credits INTEGER NOT NULL DEFAULT 0,
+                package_name TEXT,
+                assigned_by TEXT DEFAULT 'superadmin',
+                assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                notes TEXT
+            )");
+            
+            // SMS Credits için index
+            $this->db->exec("CREATE INDEX IF NOT EXISTS idx_sms_credits_community ON sms_credits(community_id)");
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), 'readonly') === false) {
+                error_log("SMS credits table creation warning: " . $e->getMessage());
+            }
+        }
         
         // Migration: tier sütunu yoksa ekle
         $this->migrateTierColumn();
         
         // Standart sürümü otomatik aktif et (eğer abonelik yoksa)
-        $this->ensureStandardSubscription();
+        try {
+            $this->ensureStandardSubscription();
+        } catch (\Exception $e) {
+            error_log("SubscriptionManager: ensureStandardSubscription failed - " . $e->getMessage());
+            // Hata kritik değil, devam et
+        }
     }
     
     /**
@@ -164,10 +228,18 @@ class SubscriptionManager {
                 if (!in_array($columnName, $existingColumns)) {
                     try {
                         // SQLite'da UNIQUE constraint ile kolon eklenemez, sadece kolon tipi
-                        $this->db->exec("ALTER TABLE subscriptions ADD COLUMN {$columnName} {$columnType}");
+                        $result = $this->db->exec("ALTER TABLE subscriptions ADD COLUMN {$columnName} {$columnType}");
+                        if ($result === false) {
+                            $error_msg = $this->db->lastErrorMsg();
+                            if (strpos($error_msg, 'readonly') === false) {
+                                error_log("Subscription column migration warning: {$columnName} - " . $error_msg);
+                            }
+                        }
                     } catch (\Exception $e) {
-                        // Kolon zaten varsa veya başka bir hata varsa sessizce devam et
-                        error_log("Subscription column migration warning: {$columnName} - " . $e->getMessage());
+                        // Readonly veritabanı hatası sessizce geç, diğer hataları logla
+                        if (strpos($e->getMessage(), 'readonly') === false) {
+                            error_log("Subscription column migration warning: {$columnName} - " . $e->getMessage());
+                        }
                     }
                 }
             }
@@ -197,24 +269,43 @@ class SubscriptionManager {
      * Tier sütunu migration
      */
     private function migrateTierColumn() {
-        // Mevcut sütunları kontrol et
-        $existingColumns = [];
-        $result = $this->db->query("PRAGMA table_info(subscriptions)");
-        while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
-            $existingColumns[] = $row['name'];
-        }
-        
-        // tier sütunu yoksa ekle
-        if (!in_array('tier', $existingColumns)) {
-            try {
-                $this->db->exec("ALTER TABLE subscriptions ADD COLUMN tier TEXT DEFAULT 'standard'");
-                
-                // Mevcut kayıtları güncelle (amount'a göre tier belirle)
-                $this->db->exec("UPDATE subscriptions SET tier = 'standard' WHERE amount = 0 OR tier IS NULL");
-                $this->db->exec("UPDATE subscriptions SET tier = 'professional' WHERE amount > 0 AND amount <= 250 AND (tier IS NULL OR tier = 'standard')");
-                $this->db->exec("UPDATE subscriptions SET tier = 'business' WHERE amount > 250 AND (tier IS NULL OR tier = 'standard')");
-            } catch (Exception $e) {
-                error_log("Tier sütunu eklenirken hata: " . $e->getMessage());
+        try {
+            // Mevcut sütunları kontrol et
+            $existingColumns = [];
+            $result = $this->db->query("PRAGMA table_info(subscriptions)");
+            if ($result === false) {
+                return; // Tablo yoksa çık
+            }
+            while ($row = $result->fetchArray(\SQLITE3_ASSOC)) {
+                $existingColumns[] = $row['name'];
+            }
+            
+            // tier sütunu yoksa ekle
+            if (!in_array('tier', $existingColumns)) {
+                try {
+                    $result = $this->db->exec("ALTER TABLE subscriptions ADD COLUMN tier TEXT DEFAULT 'standard'");
+                    if ($result === false && strpos($this->db->lastErrorMsg(), 'readonly') === false) {
+                        error_log("Tier sütunu eklenirken hata: " . $this->db->lastErrorMsg());
+                        return;
+                    }
+                    
+                    // Mevcut kayıtları güncelle (amount'a göre tier belirle) - sadece yazılabilirse
+                    if (is_writable($this->db->filename ?? '')) {
+                        $this->db->exec("UPDATE subscriptions SET tier = 'standard' WHERE amount = 0 OR tier IS NULL");
+                        $this->db->exec("UPDATE subscriptions SET tier = 'professional' WHERE amount > 0 AND amount <= 250 AND (tier IS NULL OR tier = 'standard')");
+                        $this->db->exec("UPDATE subscriptions SET tier = 'business' WHERE amount > 250 AND (tier IS NULL OR tier = 'standard')");
+                    }
+                } catch (\Exception $e) {
+                    // Readonly hatası sessizce geç
+                    if (strpos($e->getMessage(), 'readonly') === false) {
+                        error_log("Tier sütunu eklenirken hata: " . $e->getMessage());
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Genel hata - sessizce geç
+            if (strpos($e->getMessage(), 'readonly') === false && strpos($e->getMessage(), 'no such table') === false) {
+                error_log("migrateTierColumn error: " . $e->getMessage());
             }
         }
     }
@@ -223,6 +314,21 @@ class SubscriptionManager {
      * Standart sürümü otomatik aktif et - Her zaman aktif olmalı
      */
     private function ensureStandardSubscription() {
+        // Önce tablonun varlığını kontrol et
+        $table_exists = false;
+        try {
+            $result = $this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+            $table_exists = $result !== false && $result->fetchArray() !== false;
+        } catch (\Exception $e) {
+            error_log("SubscriptionManager: Table check failed - " . $e->getMessage());
+            return; // Tablo yoksa veya hata varsa çık
+        }
+        
+        if (!$table_exists) {
+            error_log("SubscriptionManager: subscriptions table does not exist, skipping ensureStandardSubscription");
+            return;
+        }
+        
         // Standart abonelik var mı kontrol et
         $check_stmt = $this->db->prepare("
             SELECT id FROM subscriptions 
@@ -231,8 +337,20 @@ class SubscriptionManager {
             AND payment_status = 'success'
             LIMIT 1
         ");
+        
+        if ($check_stmt === false) {
+            error_log("SubscriptionManager: prepare() failed - " . $this->db->lastErrorMsg());
+            return;
+        }
+        
         $check_stmt->bindValue(1, $this->communityId, \SQLITE3_TEXT);
         $check_result = $check_stmt->execute();
+        
+        if ($check_result === false) {
+            error_log("SubscriptionManager: execute() failed - " . $this->db->lastErrorMsg());
+            return;
+        }
+        
         $existing_standard = $check_result->fetchArray(\SQLITE3_ASSOC);
         
         // Eğer standart abonelik yoksa, otomatik oluştur
@@ -246,6 +364,12 @@ class SubscriptionManager {
                 (community_id, payment_id, payment_status, amount, tier, start_date, end_date, is_active, payment_token)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
+            
+            if ($stmt === false) {
+                error_log("SubscriptionManager: INSERT prepare() failed - " . $this->db->lastErrorMsg());
+                return;
+            }
+            
             $stmt->bindValue(1, $this->communityId, \SQLITE3_TEXT);
             $stmt->bindValue(2, 'STANDARD-FREE-' . $this->communityId . '-' . time(), \SQLITE3_TEXT);
             $stmt->bindValue(3, 'success', \SQLITE3_TEXT);
@@ -256,7 +380,11 @@ class SubscriptionManager {
             $stmt->bindValue(8, 1, \SQLITE3_INTEGER);
             $stmt->bindValue(9, bin2hex(random_bytes(16)), \SQLITE3_TEXT);
             
-            $stmt->execute();
+            $result = $stmt->execute();
+            if ($result === false) {
+                error_log("SubscriptionManager: INSERT execute() failed - " . $this->db->lastErrorMsg());
+                return;
+            }
             
             $subscription_id = $this->db->lastInsertRowID();
             $this->logSubscriptionAction($subscription_id, 'standard_auto_created', 'Standart abonelik otomatik oluşturuldu', []);
@@ -270,8 +398,19 @@ class SubscriptionManager {
                 WHERE community_id = ? 
                 AND tier = 'standard'
             ");
+            
+            if ($update_stmt === false) {
+                error_log("SubscriptionManager: UPDATE prepare() failed - " . $this->db->lastErrorMsg());
+                return;
+            }
+            
             $update_stmt->bindValue(1, $this->communityId, \SQLITE3_TEXT);
-            $update_stmt->execute();
+            $result = $update_stmt->execute();
+            
+            if ($result === false) {
+                error_log("SubscriptionManager: UPDATE execute() failed - " . $this->db->lastErrorMsg());
+                return;
+            }
         }
     }
     
