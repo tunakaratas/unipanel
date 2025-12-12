@@ -3660,7 +3660,7 @@ foreach ($community_details as $details) {
                                         $subscription = $community_details[$community]['subscription'] ?? null;
                                         $tier = $subscription ? ($subscription['tier'] ?? 'standard') : 'none';
                                     ?>
-                                        <div class="community-item group bg-white rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-300 overflow-hidden" 
+                                        <div class="community-item group bg-white rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full" 
                                              data-name="<?= strtolower(htmlspecialchars($community_details[$community]['name'] ?? $community)) ?>" 
                                              data-folder="<?= strtolower(htmlspecialchars($community)) ?>" 
                                              data-university="<?= strtolower(htmlspecialchars($community_details[$community]['university'] ?? '')) ?>"
@@ -3715,7 +3715,7 @@ foreach ($community_details as $details) {
                                             </div>
                                             
                                             <!-- Card Body -->
-                                            <div class="p-6 bg-white">
+                                            <div class="p-6 bg-white flex-1 flex flex-col">
                                                 <!-- Plan Badge -->
                                                 <?php if ($subscription): 
                                                     $tierLabels = [
@@ -3756,6 +3756,9 @@ foreach ($community_details as $details) {
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
+                                                <?php else: ?>
+                                                <!-- Plan yoksa boş alan ekle (yükseklik eşitleme için) -->
+                                                <div class="mb-4 h-[72px]"></div>
                                                 <?php endif; ?>
                                                 
                                                 <!-- Başkan ve Yönetim Kurulu -->
