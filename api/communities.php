@@ -407,9 +407,18 @@ try {
         // Log dizinini oluştur (yoksa)
         $log_dir = dirname($log_file);
         if (!is_dir($log_dir)) {
-            @mkdir($log_dir, 0777, true);
+            $mkdir_result = @mkdir($log_dir, 0777, true);
+            if (!$mkdir_result) {
+                error_log("Communities API: Log dizini oluşturulamadı: {$log_dir}");
+            }
         }
-        @file_put_contents($log_file, "=== Communities API Debug Started ===\n", LOCK_EX);
+        // Log dosyasını oluştur veya temizle
+        $write_result = @file_put_contents($log_file, "=== Communities API Debug Started ===\n", LOCK_EX);
+        if ($write_result === false) {
+            error_log("Communities API: Log dosyasına yazılamadı: {$log_file} - Dizin: {$log_dir} - Yazılabilir mi: " . (is_writable($log_dir) ? 'EVET' : 'HAYIR'));
+        } else {
+            error_log("Communities API: Log dosyası oluşturuldu: {$log_file} - Boyut: {$write_result} bytes");
+        }
         
         // Debug log (her zaman - sorun tespiti için)
         error_log("Communities API: Üniversite filtresi aktif - Requested ID: '{$requested_university_id}'");
