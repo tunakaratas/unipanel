@@ -3769,7 +3769,7 @@ foreach ($community_details as $details) {
                                             <!-- Durum Filtresi -->
                                             <div class="flex items-center gap-2">
                                                 <label class="text-xs font-semibold text-gray-600 whitespace-nowrap">Durum:</label>
-                                                <select id="filterStatus" onchange="if(typeof filterCommunities === 'function') filterCommunities();" class="px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all hover:border-purple-300 cursor-pointer min-w-[140px]">
+                                                <select id="filterStatus" onchange="if(typeof window.filterCommunities === 'function') { window.filterCommunities(); }" class="px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all hover:border-purple-300 cursor-pointer min-w-[140px]">
                                                     <option value="all">🔍 Tüm Durumlar</option>
                                                     <option value="active">✅ Aktif</option>
                                                     <option value="inactive">❌ Kapalı</option>
@@ -3779,7 +3779,7 @@ foreach ($community_details as $details) {
                                             <!-- Plan Filtresi -->
                                             <div class="flex items-center gap-2">
                                                 <label class="text-xs font-semibold text-gray-600 whitespace-nowrap">Plan:</label>
-                                                <select id="filterTier" onchange="if(typeof filterCommunities === 'function') filterCommunities();" class="px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all hover:border-purple-300 cursor-pointer min-w-[140px]">
+                                                <select id="filterTier" onchange="if(typeof window.filterCommunities === 'function') { window.filterCommunities(); }" class="px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all hover:border-purple-300 cursor-pointer min-w-[140px]">
                                                     <option value="all">📦 Tüm Planlar</option>
                                                     <option value="standard">⭐ Standart</option>
                                                     <option value="professional">💼 Profesyonel</option>
@@ -3791,7 +3791,7 @@ foreach ($community_details as $details) {
                                         <!-- Sonuç ve Temizle -->
                                         <div class="flex items-center gap-3">
                                             <span id="filteredCount" class="text-sm font-semibold text-purple-600 bg-purple-50 px-3 py-2 rounded-lg hidden"></span>
-                                            <button id="clearFiltersBtn" onclick="if(typeof clearFilters === 'function') clearFilters(); return false;" class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                            <button id="clearFiltersBtn" onclick="if(typeof window.clearFilters === 'function') { window.clearFilters(); } return false;" class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                 </svg>
@@ -5505,10 +5505,15 @@ let isLoadingCommunities = false;
     
     // Arama fonksiyonu - Topluluk isimlerini HTML'den çeker
     function performSearch() {
+        console.log('=== ARAMA BAŞLATILDI ===');
+        
         // Tüm topluluk kartlarını al
         const communityItems = document.querySelectorAll('.community-item');
+        console.log('Bulunan topluluk kartı sayısı:', communityItems.length);
         
         if (communityItems.length === 0) {
+            console.warn('Topluluk kartı bulunamadı!');
+            alert('Topluluk kartı bulunamadı! Sayfayı yenileyin.');
             return;
         }
         
@@ -5519,16 +5524,34 @@ let isLoadingCommunities = false;
         const tierSelect = document.getElementById('filterTier');
         const filteredCount = document.getElementById('filteredCount');
         
+        console.log('Elementler:', {
+            searchInput: !!searchInput,
+            universityInput: !!universityInput,
+            statusSelect: !!statusSelect,
+            tierSelect: !!tierSelect,
+            filteredCount: !!filteredCount
+        });
+        
         // Arama terimlerini al
         const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const universityTerm = universityInput ? universityInput.value.trim().toLowerCase() : '';
         const statusFilter = statusSelect ? statusSelect.value : 'all';
         const tierFilter = tierSelect ? tierSelect.value : 'all';
         
+        console.log('Arama terimleri:', {
+            searchTerm: searchTerm,
+            universityTerm: universityTerm,
+            statusFilter: statusFilter,
+            tierFilter: tierFilter
+        });
+        
         let visibleCount = 0;
+        let checkedCount = 0;
         
         // Her bir topluluk kartını kontrol et
-        communityItems.forEach(function(item) {
+        communityItems.forEach(function(item, index) {
+            checkedCount++;
+            
             // Topluluk ismini HTML'den çek (h3 tag'inden)
             const nameElement = item.querySelector('h3');
             const nameText = nameElement ? nameElement.textContent.trim().toLowerCase() : '';
@@ -5540,16 +5563,24 @@ let isLoadingCommunities = false;
             const status = item.getAttribute('data-status') || '';
             const tier = item.getAttribute('data-tier') || 'none';
             
-            // Tüm metinleri birleştir (arama için)
-            const allTexts = [nameText, dataName, folder, university].filter(Boolean).join(' ');
+            // İlk 3 kart için debug bilgisi
+            if (index < 3) {
+                console.log('Kart ' + (index + 1) + ':', {
+                    nameText: nameText,
+                    dataName: dataName,
+                    folder: folder,
+                    university: university,
+                    status: status,
+                    tier: tier
+                });
+            }
             
             // Arama filtresi - topluluk ismi, klasör veya üniversite içinde arar
             const matchesSearch = !searchTerm || 
                 nameText.includes(searchTerm) || 
                 dataName.includes(searchTerm) ||
                 folder.includes(searchTerm) || 
-                university.includes(searchTerm) ||
-                allTexts.includes(searchTerm);
+                university.includes(searchTerm);
             
             // Üniversite filtresi
             const matchesUniversity = !universityTerm || university.includes(universityTerm);
@@ -5572,6 +5603,10 @@ let isLoadingCommunities = false;
                 item.classList.add('hidden');
             }
         });
+        
+        console.log('Kontrol edilen kart sayısı:', checkedCount);
+        console.log('Gösterilen kart sayısı:', visibleCount);
+        console.log('=== ARAMA TAMAMLANDI ===');
         
         // Sonuç sayısını güncelle
         if (filteredCount) {

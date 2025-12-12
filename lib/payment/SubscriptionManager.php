@@ -567,11 +567,21 @@ class SubscriptionManager {
      * Abonelik bilgilerini al - En yüksek tier'ı önceliklendir
      */
     public function getSubscription() {
-        // Tabloyu garantile
-        $this->createSubscriptionTable();
+        // Önce tablonun varlığını kontrol et
+        $table_check = @$this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+        if ($table_check === false || $table_check->fetchArray() === false) {
+            // Tablo yoksa oluşturmayı dene
+            $this->createSubscriptionTable();
+            // Tekrar kontrol et
+            $table_check = @$this->db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'");
+            if ($table_check === false || $table_check->fetchArray() === false) {
+                // Tablo hala yoksa null dön
+                return null;
+            }
+        }
         
         // Önce aktif profesyonel/business aboneliği kontrol et
-        $stmt = $this->db->prepare("
+        $stmt = @$this->db->prepare("
             SELECT * FROM subscriptions 
             WHERE community_id = ? 
             AND tier IN ('professional', 'business')
@@ -588,7 +598,10 @@ class SubscriptionManager {
             LIMIT 1
         ");
         if ($stmt === false) {
-            error_log("SubscriptionManager: prepare() failed - " . $this->db->lastErrorMsg());
+            $error_msg = $this->db->lastErrorMsg();
+            if (strpos($error_msg, 'no such table') === false) {
+                error_log("SubscriptionManager: prepare() failed - " . $error_msg);
+            }
             return null;
         }
         $stmt->bindValue(1, $this->communityId, \SQLITE3_TEXT);
@@ -600,7 +613,7 @@ class SubscriptionManager {
         }
         
         // Aktif paid abonelik yoksa standart aboneliği getir
-        $standard_stmt = $this->db->prepare("
+        $standard_stmt = @$this->db->prepare("
             SELECT * FROM subscriptions 
             WHERE community_id = ? 
             AND tier = 'standard'
@@ -610,7 +623,10 @@ class SubscriptionManager {
             LIMIT 1
         ");
         if ($standard_stmt === false) {
-            error_log("SubscriptionManager: standard prepare() failed - " . $this->db->lastErrorMsg());
+            $error_msg = $this->db->lastErrorMsg();
+            if (strpos($error_msg, 'no such table') === false) {
+                error_log("SubscriptionManager: standard prepare() failed - " . $error_msg);
+            }
             return null;
         }
         $standard_stmt->bindValue(1, $this->communityId, \SQLITE3_TEXT);
