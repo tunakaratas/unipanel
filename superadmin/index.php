@@ -7496,6 +7496,16 @@ function loadMoreSuperadminEvents() {
 
         // Form gönderimini normal POST ile yap (AJAX kaldırıldı)
         document.addEventListener('DOMContentLoaded', function() {
+            // Başkan modalı için click outside handler
+            const addPresidentModal = document.getElementById('addPresidentModal');
+            if (addPresidentModal && typeof closeAddPresidentModal === 'function') {
+                addPresidentModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeAddPresidentModal();
+                    }
+                });
+            }
+            
             // Topluluk adı yazılırken klasör adını otomatik formatla
             const communityNameInput = document.getElementById('community_name');
             const folderNameInput = document.getElementById('folder_name');
