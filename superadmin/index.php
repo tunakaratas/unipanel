@@ -5466,8 +5466,8 @@ foreach ($community_details as $details) {
                             if (addPresidentModal) {
                                 addPresidentModal.addEventListener('click', function(e) {
                                     if (e.target === this) {
-                                        if (typeof closeAddPresidentModal === 'function') {
-                                            closeAddPresidentModal();
+                                        if (typeof window.closeAddPresidentModal === 'function') {
+                                            window.closeAddPresidentModal();
                                         }
                                     }
                                 });
@@ -7539,11 +7539,7 @@ function loadMoreSuperadminEvents() {
             }
         }
 
-        function updatePlanDetails() {
-            const tier = document.querySelector('input[name="plan_tier"]:checked')?.value || 'standard';
-            const months = parseInt(document.getElementById('planMonths').value) || 6;
-            let totalPrice = 0;
-            let details = '';
+        // updatePlanDetails zaten window objesinde tanımlı, bu duplicate'i kaldır
 
             if (tier === 'standard') {
                 totalPrice = 0;
