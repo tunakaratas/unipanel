@@ -69,18 +69,23 @@ function get_requested_university_id() {
     $raw = '';
     if (isset($_GET['university_id'])) {
         $raw = (string)$_GET['university_id'];
-        // URL decode - Swift'ten gelen encoded değeri decode et
-        // NOT: PHP'nin $_GET otomatik decode eder ama bazı durumlarda çift encode olabilir
-        $raw = urldecode($raw);
-        // Eğer hala encoded görünüyorsa tekrar decode et
+        // NOT: PHP'nin $_GET otomatik olarak URL decode eder
+        // Ama bazı durumlarda (özellikle Swift'ten gelen) çift encode olabilir
+        // Eğer hala % karakteri varsa, tekrar decode et
         if (strpos($raw, '%') !== false) {
             $raw = urldecode($raw);
+            // Çift encode durumunda tekrar kontrol et
+            if (strpos($raw, '%') !== false) {
+                $raw = urldecode($raw);
+            }
         }
     } elseif (isset($_GET['university'])) {
         $raw = (string)$_GET['university'];
-        $raw = urldecode($raw);
         if (strpos($raw, '%') !== false) {
             $raw = urldecode($raw);
+            if (strpos($raw, '%') !== false) {
+                $raw = urldecode($raw);
+            }
         }
     }
 
@@ -93,6 +98,9 @@ function get_requested_university_id() {
     if (strpos($raw, '..') !== false || strpos($raw, '/') !== false || strpos($raw, '\\') !== false) {
         return '';
     }
+
+    // Debug log
+    error_log("Communities API get_requested_university_id: Raw input: '{$_GET['university_id'] ?? ''}' -> After decode: '{$raw}' -> Normalized: '" . normalize_university_id($raw) . "'");
 
     return normalize_university_id($raw);
 }
