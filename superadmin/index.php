@@ -5475,60 +5475,78 @@ let allCommunities = <?= json_encode($communities ?? []) ?>;
 let isLoadingCommunities = false;
 
 // TOPLULUK ARAMA - EN BASİT VE ÇALIŞIR VERSİYON
-window.doSearch = function() {
-    const search = (document.getElementById('communitySearch') || {}).value.toLowerCase() || '';
-    const university = (document.getElementById('filterUniversity') || {}).value.toLowerCase() || '';
-    const status = (document.getElementById('filterStatus') || {}).value || 'all';
-    const tier = (document.getElementById('filterTier') || {}).value || 'all';
-    
-    const items = document.querySelectorAll('.community-item');
-    let visible = 0;
-    
-    items.forEach(function(item) {
-        const name = (item.querySelector('h3')?.textContent || '').toLowerCase();
-        const dataName = (item.getAttribute('data-name') || '').toLowerCase();
-        const dataFolder = (item.getAttribute('data-folder') || '').toLowerCase();
-        const dataUni = (item.getAttribute('data-university') || '').toLowerCase();
-        const dataStatus = item.getAttribute('data-status') || '';
-        const dataTier = item.getAttribute('data-tier') || 'none';
-        
-        const matchSearch = !search || name.includes(search) || dataName.includes(search) || dataFolder.includes(search) || dataUni.includes(search);
-        const matchUni = !university || dataUni.includes(university);
-        const matchStatus = status === 'all' || (status === 'active' && dataStatus === 'active') || (status === 'inactive' && dataStatus !== 'active');
-        const matchTier = tier === 'all' || dataTier === tier;
-        
-        if (matchSearch && matchUni && matchStatus && matchTier) {
-            item.style.display = '';
-            visible++;
-        } else {
-            item.style.display = 'none';
+// Sayfa yüklendiğinde tanımla
+(function() {
+    window.doSearch = function() {
+        try {
+            const search = (document.getElementById('communitySearch') || {}).value.toLowerCase() || '';
+            const university = (document.getElementById('filterUniversity') || {}).value.toLowerCase() || '';
+            const status = (document.getElementById('filterStatus') || {}).value || 'all';
+            const tier = (document.getElementById('filterTier') || {}).value || 'all';
+            
+            const items = document.querySelectorAll('.community-item');
+            let visible = 0;
+            
+            items.forEach(function(item) {
+                const name = (item.querySelector('h3')?.textContent || '').toLowerCase();
+                const dataName = (item.getAttribute('data-name') || '').toLowerCase();
+                const dataFolder = (item.getAttribute('data-folder') || '').toLowerCase();
+                const dataUni = (item.getAttribute('data-university') || '').toLowerCase();
+                const dataStatus = item.getAttribute('data-status') || '';
+                const dataTier = item.getAttribute('data-tier') || 'none';
+                
+                const matchSearch = !search || name.includes(search) || dataName.includes(search) || dataFolder.includes(search) || dataUni.includes(search);
+                const matchUni = !university || dataUni.includes(university);
+                const matchStatus = status === 'all' || (status === 'active' && dataStatus === 'active') || (status === 'inactive' && dataStatus !== 'active');
+                const matchTier = tier === 'all' || dataTier === tier;
+                
+                if (matchSearch && matchUni && matchStatus && matchTier) {
+                    item.style.display = '';
+                    visible++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            const resultDiv = document.getElementById('searchResult');
+            if (resultDiv) {
+                if (search || university || status !== 'all' || tier !== 'all') {
+                    resultDiv.textContent = visible + ' topluluk bulundu';
+                    resultDiv.classList.remove('hidden');
+                } else {
+                    resultDiv.classList.add('hidden');
+                }
+            }
+        } catch (e) {
+            console.error('Arama hatası:', e);
         }
-    });
-    
-    const resultDiv = document.getElementById('searchResult');
-    if (resultDiv) {
-        if (search || university || status !== 'all' || tier !== 'all') {
-            resultDiv.textContent = visible + ' topluluk bulundu';
-            resultDiv.classList.remove('hidden');
-        } else {
-            resultDiv.classList.add('hidden');
-        }
-    }
-};
+    };
 
-window.clearSearch = function() {
-    const search = document.getElementById('communitySearch');
-    const university = document.getElementById('filterUniversity');
-    const status = document.getElementById('filterStatus');
-    const tier = document.getElementById('filterTier');
+    window.clearSearch = function() {
+        try {
+            const search = document.getElementById('communitySearch');
+            const university = document.getElementById('filterUniversity');
+            const status = document.getElementById('filterStatus');
+            const tier = document.getElementById('filterTier');
+            
+            if (search) search.value = '';
+            if (university) university.value = '';
+            if (status) status.value = 'all';
+            if (tier) tier.value = 'all';
+            
+            window.doSearch();
+        } catch (e) {
+            console.error('Temizleme hatası:', e);
+        }
+    };
     
-    if (search) search.value = '';
-    if (university) university.value = '';
-    if (status) status.value = 'all';
-    if (tier) tier.value = 'all';
-    
-    window.doSearch();
-};
+    // Sayfa yüklendiğinde de tanımla (güvenlik için)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Zaten tanımlı, sadece emin ol
+        });
+    }
+})();
 
 function loadMoreCommunities() {
     if (isLoadingCommunities || !allCommunities || allCommunities.length === 0) return;
