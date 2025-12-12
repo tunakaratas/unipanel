@@ -5231,6 +5231,7 @@ foreach ($community_details as $details) {
                         </div>
                     </div>
 
+<?php if ($view === 'communities'): ?>
                     <!-- Başkan Ekle/Düzenle Modal -->
                     <div id="addPresidentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 overflow-y-auto" style="display: none;">
                         <div class="flex items-center justify-center min-h-screen p-4">
@@ -5327,57 +5328,6 @@ foreach ($community_details as $details) {
                             }
                         });
                         
-                        // Başkan Ekle/Düzenle Modal Fonksiyonları
-                        function openAddPresidentModal(communityFolder, communityName, presidentData) {
-                            try {
-                                const modal = document.getElementById('addPresidentModal');
-                                if (!modal) {
-                                    console.error('addPresidentModal bulunamadı!');
-                                    alert('Modal bulunamadı. Sayfayı yenileyin.');
-                                    return;
-                                }
-                                
-                                // Form alanlarını doldur
-                                document.getElementById('presidentCommunityFolder').value = communityFolder;
-                                document.getElementById('presidentCommunityName').textContent = communityName;
-                                
-                                // Mevcut başkan bilgilerini doldur (varsa)
-                                if (presidentData && presidentData.name) {
-                                    document.getElementById('presidentName').value = presidentData.name || '';
-                                    document.getElementById('presidentEmail').value = presidentData.email || '';
-                                    document.getElementById('presidentPhone').value = presidentData.phone || '';
-                                    document.getElementById('presidentStudentId').value = presidentData.student_id || '';
-                                    document.getElementById('presidentDepartment').value = presidentData.department || '';
-                                } else {
-                                    // Formu temizle
-                                    document.getElementById('presidentName').value = '';
-                                    document.getElementById('presidentEmail').value = '';
-                                    document.getElementById('presidentPhone').value = '';
-                                    document.getElementById('presidentStudentId').value = '';
-                                    document.getElementById('presidentDepartment').value = '';
-                                }
-                                
-                                // Modal'ı göster
-                                modal.style.display = 'flex';
-                                modal.classList.remove('hidden');
-                            } catch (error) {
-                                console.error('openAddPresidentModal hatası:', error);
-                                alert('Modal açılırken hata oluştu: ' + error.message);
-                            }
-                        }
-                        
-                        function closeAddPresidentModal() {
-                            try {
-                                const modal = document.getElementById('addPresidentModal');
-                                if (modal) {
-                                    modal.style.display = 'none';
-                                    modal.classList.add('hidden');
-                                }
-                            } catch (error) {
-                                console.error('closeAddPresidentModal hatası:', error);
-                            }
-                        }
-                        
                         // QR Kod Fonksiyonları (diğer yerlerde kullanılıyor olabilir)
                         function showCommunityQRCode(communityFolder, communityName) {
                             const modal = document.getElementById('qrCodeModal');
@@ -5431,13 +5381,15 @@ foreach ($community_details as $details) {
                             }
                         }
                         
-                        // Başkan modalı için click outside handler
+                        // Başkan modalı için click outside handler - sadece modal varsa
                         document.addEventListener('DOMContentLoaded', function() {
                             const addPresidentModal = document.getElementById('addPresidentModal');
                             if (addPresidentModal) {
                                 addPresidentModal.addEventListener('click', function(e) {
                                     if (e.target === this) {
-                                        closeAddPresidentModal();
+                                        if (typeof closeAddPresidentModal === 'function') {
+                                            closeAddPresidentModal();
+                                        }
                                     }
                                 });
                             }
@@ -7335,56 +7287,6 @@ function loadMoreSuperadminEvents() {
             }
         }
 
-        // Başkan Ekle/Düzenle Modal Fonksiyonları
-        function openAddPresidentModal(communityFolder, communityName, presidentData) {
-            try {
-                const modal = document.getElementById('addPresidentModal');
-                if (!modal) {
-                    console.error('addPresidentModal bulunamadı!');
-                    alert('Modal bulunamadı. Sayfayı yenileyin.');
-                    return;
-                }
-                
-                // Form alanlarını doldur
-                document.getElementById('presidentCommunityFolder').value = communityFolder;
-                document.getElementById('presidentCommunityName').textContent = communityName;
-                
-                // Mevcut başkan bilgilerini doldur (varsa)
-                if (presidentData && presidentData.name) {
-                    document.getElementById('presidentName').value = presidentData.name || '';
-                    document.getElementById('presidentEmail').value = presidentData.email || '';
-                    document.getElementById('presidentPhone').value = presidentData.phone || '';
-                    document.getElementById('presidentStudentId').value = presidentData.student_id || '';
-                    document.getElementById('presidentDepartment').value = presidentData.department || '';
-                } else {
-                    // Formu temizle
-                    document.getElementById('presidentName').value = '';
-                    document.getElementById('presidentEmail').value = '';
-                    document.getElementById('presidentPhone').value = '';
-                    document.getElementById('presidentStudentId').value = '';
-                    document.getElementById('presidentDepartment').value = '';
-                }
-                
-                // Modal'ı göster
-                modal.style.display = 'flex';
-                modal.classList.remove('hidden');
-            } catch (error) {
-                console.error('openAddPresidentModal hatası:', error);
-                alert('Modal açılırken hata oluştu: ' + error.message);
-            }
-        }
-        
-        function closeAddPresidentModal() {
-            try {
-                const modal = document.getElementById('addPresidentModal');
-                if (modal) {
-                    modal.style.display = 'none';
-                    modal.classList.add('hidden');
-                }
-            } catch (error) {
-                console.error('closeAddPresidentModal hatası:', error);
-            }
-        }
 
         function openAssignPlanSmsModal(communityFolder, communityName) {
             try {
@@ -7779,12 +7681,13 @@ function loadMoreSuperadminEvents() {
                             Topluluk Oluştur
                         </button>
                     </div>
-                </form>
-            </div>
-        </div>
-    </div>
+                            </form>
+                        </div>
+                        </div>
+                    </div>
+<?php endif; ?>
 
-    <script>
+                    <script>
         function openCreateModal() {
             document.getElementById('createModal').classList.remove('hidden');
         }
