@@ -5398,11 +5398,14 @@ foreach ($community_details as $details) {
                             document.getElementById('reject_reason').value = '';
                         }
                         
-                        document.getElementById('rejectModal').addEventListener('click', function(e) {
-                            if (e.target === this) {
-                                closeRejectModal();
-                            }
-                        });
+                        const rejectModalEl = document.getElementById('rejectModal');
+                        if (rejectModalEl) {
+                            rejectModalEl.addEventListener('click', function(e) {
+                                if (e.target === this) {
+                                    closeRejectModal();
+                                }
+                            });
+                        }
                         
                         // QR Kod Fonksiyonları (diğer yerlerde kullanılıyor olabilir)
                         function showCommunityQRCode(communityFolder, communityName) {
@@ -7462,8 +7465,10 @@ function loadMoreSuperadminEvents() {
         
         window.updatePlanDetails = function() {
             try {
-                const tier = document.querySelector('input[name="plan_tier"]:checked')?.value || 'standard';
-                const months = parseInt(document.getElementById('planMonths')?.value || 6);
+                const tierInput = document.querySelector('input[name="plan_tier"]:checked');
+                const tier = tierInput ? tierInput.value : 'standard';
+                const monthsInput = document.getElementById('planMonths');
+                const months = monthsInput ? parseInt(monthsInput.value) || 6 : 6;
                 let totalPrice = 0;
                 let details = '';
 
@@ -7487,31 +7492,42 @@ function loadMoreSuperadminEvents() {
             }
         }
         
-        function switchTab(tab) {
-            const planTab = document.getElementById('planTab');
-            const smsTab = document.getElementById('smsTab');
-            const tabPlanBtn = document.getElementById('tabPlan');
-            const tabSmsBtn = document.getElementById('tabSms');
-            
-            if (tab === 'plan') {
-                planTab.classList.remove('hidden');
-                smsTab.classList.add('hidden');
-                tabPlanBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
-                tabPlanBtn.classList.remove('text-gray-500');
-                tabSmsBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
-                tabSmsBtn.classList.add('text-gray-500');
-            } else if (tab === 'sms') {
-                planTab.classList.add('hidden');
-                smsTab.classList.remove('hidden');
-                tabSmsBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
-                tabSmsBtn.classList.remove('text-gray-500');
-                tabPlanBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
-                tabPlanBtn.classList.add('text-gray-500');
+        window.switchTab = function(tab) {
+            try {
+                const planTab = document.getElementById('planTab');
+                const smsTab = document.getElementById('smsTab');
+                const tabPlanBtn = document.getElementById('tabPlan');
+                const tabSmsBtn = document.getElementById('tabSms');
+                
+                if (tab === 'plan') {
+                    if (planTab) planTab.style.display = 'block';
+                    if (smsTab) smsTab.style.display = 'none';
+                    if (tabPlanBtn) {
+                        tabPlanBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                        tabPlanBtn.classList.remove('text-gray-500');
+                    }
+                    if (tabSmsBtn) {
+                        tabSmsBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                        tabSmsBtn.classList.add('text-gray-500');
+                    }
+                } else if (tab === 'sms') {
+                    if (planTab) planTab.style.display = 'none';
+                    if (smsTab) smsTab.style.display = 'block';
+                    if (tabSmsBtn) {
+                        tabSmsBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                        tabSmsBtn.classList.remove('text-gray-500');
+                    }
+                    if (tabPlanBtn) {
+                        tabPlanBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                        tabPlanBtn.classList.add('text-gray-500');
+                    }
+                }
+            } catch (error) {
+                console.error('switchTab hatası:', error);
             }
         }
         
-        
-        function closeEditCommunityModal() {
+        window.closeEditCommunityModal = function() {
             try {
                 const modal = document.getElementById('editCommunityModal');
                 if (modal) {
