@@ -3305,6 +3305,65 @@ foreach ($community_details as $details) {
     </style>
     <!-- Topluluk Arama JavaScript - Head İçinde -->
     <script>
+    // Başkan Ekle/Düzenle Modal Fonksiyonları - Global scope (head'de tanımla)
+    function openAddPresidentModal(communityFolder, communityName, presidentData) {
+        try {
+            const modal = document.getElementById('addPresidentModal');
+            if (!modal) {
+                console.error('addPresidentModal bulunamadı!');
+                alert('Modal bulunamadı. Sayfayı yenileyin.');
+                return;
+            }
+            
+            // Form alanlarını doldur
+            const folderInput = document.getElementById('presidentCommunityFolder');
+            const nameDisplay = document.getElementById('presidentCommunityName');
+            if (folderInput) folderInput.value = communityFolder;
+            if (nameDisplay) nameDisplay.textContent = communityName;
+            
+            // Mevcut başkan bilgilerini doldur (varsa)
+            const nameInput = document.getElementById('presidentName');
+            const emailInput = document.getElementById('presidentEmail');
+            const phoneInput = document.getElementById('presidentPhone');
+            const studentIdInput = document.getElementById('presidentStudentId');
+            const departmentInput = document.getElementById('presidentDepartment');
+            
+            if (presidentData && presidentData.name) {
+                if (nameInput) nameInput.value = presidentData.name || '';
+                if (emailInput) emailInput.value = presidentData.email || '';
+                if (phoneInput) phoneInput.value = presidentData.phone || '';
+                if (studentIdInput) studentIdInput.value = presidentData.student_id || '';
+                if (departmentInput) departmentInput.value = presidentData.department || '';
+            } else {
+                // Formu temizle
+                if (nameInput) nameInput.value = '';
+                if (emailInput) emailInput.value = '';
+                if (phoneInput) phoneInput.value = '';
+                if (studentIdInput) studentIdInput.value = '';
+                if (departmentInput) departmentInput.value = '';
+            }
+            
+            // Modal'ı göster
+            modal.style.display = 'flex';
+            modal.classList.remove('hidden');
+        } catch (error) {
+            console.error('openAddPresidentModal hatası:', error);
+            alert('Modal açılırken hata oluştu: ' + error.message);
+        }
+    }
+    
+    function closeAddPresidentModal() {
+        try {
+            const modal = document.getElementById('addPresidentModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('closeAddPresidentModal hatası:', error);
+        }
+    }
+    
     // Sayfa yüklenmeden önce tanımla
     window.doSearch = function() {
         try {
