@@ -3876,18 +3876,11 @@ foreach ($community_details as $details) {
                                                 
                                                 <!-- Alt Butonlar -->
                                                 <div class="grid grid-cols-4 gap-2">
-                                                    <button onclick="openAssignPlanModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
+                                                    <button onclick="openAssignPlanSmsModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
                                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                         </svg>
-                                                        Plan
-                                                    </button>
-                                                    
-                                                    <button onclick="openAssignSmsPackageModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-blue-600 border-2 border-blue-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
-                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                                        </svg>
-                                                        SMS
+                                                        Plan & SMS
                                                     </button>
                                                     
                                                     <button onclick="showCommunityQRCode('<?= htmlspecialchars($community, ENT_QUOTES) ?>', '<?= htmlspecialchars($community_details[$community]['name'] ?? $community, ENT_QUOTES) ?>')" class="px-3 py-2.5 bg-white text-green-600 border-2 border-green-300 rounded-lg hover:bg-green-50 hover:border-green-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105" title="QR Kod">
@@ -6723,169 +6716,169 @@ function loadMoreSuperadminEvents() {
         </div>
     </div>
 
-    <!-- Plan Atama Modal -->
-    <div id="assignPlanModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
-        <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 my-8">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">Plan Ata</h3>
-                <button onclick="closeAssignPlanModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            <form method="POST" action="?action=assign_plan" id="assignPlanForm">
-                <?= get_csrf_field() ?>
-                <input type="hidden" name="community_folder" id="planCommunityFolder">
-                <div class="mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <p class="text-sm text-gray-600">
-                        <span class="font-medium">Topluluk:</span> 
-                        <span id="planCommunityName" class="text-purple-700 font-semibold"></span>
-                    </p>
-                </div>
-                <div class="space-y-4">
-                    <!-- Plan Seçimi -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Plan Tipi <span class="text-red-500">*</span>
-                        </label>
-                        <div class="space-y-2">
-                            <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                <input type="radio" name="plan_tier" value="standard" checked class="mr-3" onchange="updatePlanDetails()">
-                                <div class="flex-1">
-                                    <div class="font-medium text-gray-800">Standart</div>
-                                    <div class="text-xs text-gray-500">Ücretsiz - Temel özellikler</div>
-                                </div>
-                                <span class="text-green-600 font-semibold">0 TL</span>
-                            </label>
-                            <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                <input type="radio" name="plan_tier" value="professional" class="mr-3" onchange="updatePlanDetails()">
-                                <div class="flex-1">
-                                    <div class="font-medium text-gray-800">Profesyonel</div>
-                                    <div class="text-xs text-gray-500">Mail Merkezi, Finans, API erişimi</div>
-                                </div>
-                                <span class="text-blue-600 font-semibold" id="professionalPrice">250 TL/ay</span>
-                            </label>
-                            <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                                <input type="radio" name="plan_tier" value="business" class="mr-3" onchange="updatePlanDetails()">
-                                <div class="flex-1">
-                                    <div class="font-medium text-gray-800">Business</div>
-                                    <div class="text-xs text-gray-500">Tüm özellikler + SMS Merkezi</div>
-                                </div>
-                                <span class="text-purple-600 font-semibold" id="businessPrice">500 TL/ay</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Ay Sayısı -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Süre (Ay) <span class="text-red-500">*</span>
-                        </label>
-                        <select name="months" id="planMonths" required class="w-full p-2.5 border border-gray-300 rounded-lg input-focus text-sm" onchange="updatePlanDetails()">
-                            <option value="1">1 Ay</option>
-                            <option value="6" selected>6 Ay</option>
-                            <option value="12">12 Ay</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Toplam Fiyat -->
-                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm font-medium text-gray-700">Toplam Tutar:</span>
-                            <span class="text-lg font-bold text-gray-800" id="totalPrice">0 TL</span>
-                        </div>
-                        <div class="text-xs text-gray-500 mt-1" id="planDetails">Standart plan ücretsizdir</div>
-                    </div>
-                </div>
-                <div class="flex space-x-3 mt-5">
-                    <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition duration-150 text-sm font-medium">
-                        Planı Ata
-                    </button>
-                    <button type="button" onclick="closeAssignPlanModal()" class="px-4 py-2.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-150 text-sm">
-                        İptal
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- SMS Paketi Tahsis Modal -->
-    <div id="assignSmsPackageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 my-8">
+    <!-- Plan & SMS Birleşik Modal -->
+    <div id="assignPlanSmsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4 my-8">
             <div class="flex items-center justify-between p-6 border-b border-gray-200">
-                <h3 class="text-xl font-semibold text-gray-800">SMS Paketi Tahsis Et</h3>
-                <button onclick="closeAssignSmsPackageModal()" class="text-gray-400 hover:text-gray-600">
+                <h3 class="text-xl font-semibold text-gray-800">Plan & SMS Yönetimi</h3>
+                <button onclick="closeAssignPlanSmsModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
-            <form method="POST" action="?action=assign_sms_package" id="assignSmsPackageForm">
-                <?= get_csrf_field() ?>
-                <input type="hidden" name="community_folder" id="smsPackageCommunityFolder">
-                <div class="mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <p class="text-sm text-gray-600">
-                        <span class="font-medium">Topluluk:</span> 
-                        <span id="smsPackageCommunityName" class="text-purple-700 font-semibold"></span>
-                    </p>
-                </div>
-                <div class="p-6 space-y-4">
-                    <!-- SMS Paketi Seçimi -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            SMS Paketi <span class="text-red-500">*</span>
-                        </label>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            <?php
-                            require_once __DIR__ . '/../lib/payment/SubscriptionManager.php';
-                            $allPackages = \UniPanel\Payment\SubscriptionManager::getPackagePrices();
-                            $smsPackages = [];
-                            foreach ($allPackages as $key => $package) {
-                                if (isset($package['is_addon']) && $package['is_addon'] && isset($package['sms_credits'])) {
-                                    $smsPackages[] = $package;
+            
+            <!-- Topluluk Bilgisi -->
+            <div class="p-4 bg-purple-50 border-b border-purple-200">
+                <p class="text-sm text-gray-600">
+                    <span class="font-medium">Topluluk:</span> 
+                    <span id="planSmsCommunityName" class="text-purple-700 font-semibold"></span>
+                </p>
+            </div>
+            
+            <!-- Sekmeler -->
+            <div class="flex border-b border-gray-200">
+                <button onclick="switchTab('plan')" id="tabPlan" class="flex-1 px-4 py-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600 bg-purple-50 transition">
+                    Plan Yönetimi
+                </button>
+                <button onclick="switchTab('sms')" id="tabSms" class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition">
+                    SMS Paketi
+                </button>
+            </div>
+            
+            <!-- Plan Sekmesi -->
+            <div id="planTab" class="p-6">
+                <form method="POST" action="?action=assign_plan" id="assignPlanForm">
+                    <?= get_csrf_field() ?>
+                    <input type="hidden" name="community_folder" id="planCommunityFolder">
+                    <div class="space-y-4">
+                        <!-- Plan Seçimi -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Plan Tipi <span class="text-red-500">*</span>
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                    <input type="radio" name="plan_tier" value="standard" checked class="mr-3" onchange="updatePlanDetails()">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-800">Standart</div>
+                                        <div class="text-xs text-gray-500">Ücretsiz - Temel özellikler</div>
+                                    </div>
+                                    <span class="text-green-600 font-semibold">0 TL</span>
+                                </label>
+                                <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                    <input type="radio" name="plan_tier" value="professional" class="mr-3" onchange="updatePlanDetails()">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-800">Profesyonel</div>
+                                        <div class="text-xs text-gray-500">Mail Merkezi, Finans, API erişimi</div>
+                                    </div>
+                                    <span class="text-blue-600 font-semibold" id="professionalPrice">250 TL/ay</span>
+                                </label>
+                                <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                    <input type="radio" name="plan_tier" value="business" class="mr-3" onchange="updatePlanDetails()">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-800">Business</div>
+                                        <div class="text-xs text-gray-500">Tüm özellikler + SMS Merkezi</div>
+                                    </div>
+                                    <span class="text-purple-600 font-semibold" id="businessPrice">500 TL/ay</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Ay Sayısı -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Süre (Ay) <span class="text-red-500">*</span>
+                            </label>
+                            <select name="months" id="planMonths" required class="w-full p-2.5 border border-gray-300 rounded-lg input-focus text-sm" onchange="updatePlanDetails()">
+                                <option value="1">1 Ay</option>
+                                <option value="6" selected>6 Ay</option>
+                                <option value="12">12 Ay</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Toplam Fiyat -->
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-gray-700">Toplam Tutar:</span>
+                                <span class="text-lg font-bold text-gray-800" id="totalPrice">0 TL</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1" id="planDetails">Standart plan ücretsizdir</div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3 mt-5">
+                        <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition duration-150 text-sm font-medium">
+                            Planı Ata
+                        </button>
+                        <button type="button" onclick="closeAssignPlanSmsModal()" class="px-4 py-2.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-150 text-sm">
+                            İptal
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- SMS Sekmesi -->
+            <div id="smsTab" class="p-6 hidden">
+                <form method="POST" action="?action=assign_sms_package" id="assignSmsPackageForm">
+                    <?= get_csrf_field() ?>
+                    <input type="hidden" name="community_folder" id="smsPackageCommunityFolder">
+                    <div class="space-y-4">
+                        <!-- SMS Paketi Seçimi -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                SMS Paketi <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <?php
+                                require_once __DIR__ . '/../lib/payment/SubscriptionManager.php';
+                                $allPackages = \UniPanel\Payment\SubscriptionManager::getPackagePrices();
+                                $smsPackages = [];
+                                foreach ($allPackages as $key => $package) {
+                                    if (isset($package['is_addon']) && $package['is_addon'] && isset($package['sms_credits'])) {
+                                        $smsPackages[] = $package;
+                                    }
                                 }
-                            }
-                            // SMS kredisine göre sırala
-                            usort($smsPackages, function($a, $b) {
-                                return $a['sms_credits'] <=> $b['sms_credits'];
-                            });
-                            foreach ($smsPackages as $package):
-                            ?>
-                                <label class="sms-package-option block cursor-pointer">
-                                    <input type="radio" name="sms_package" value="<?= $package['sms_credits'] ?>" class="peer hidden" data-credits="<?= $package['sms_credits'] ?>" data-price="<?= $package['price'] ?>" required>
-                                    <div class="border-2 border-gray-200 rounded-lg p-3 transition-all duration-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 peer-checked:shadow-lg hover:border-purple-300 h-full">
-                                        <div class="text-center">
-                                            <div class="text-sm font-semibold text-gray-900 mb-1">
-                                                <?= number_format($package['sms_credits'], 0, ',', '.') ?> SMS
-                                            </div>
-                                            <div class="text-xs text-gray-500">
-                                                <?= number_format($package['price'], 0, ',', '.') ?>₺
+                                // SMS kredisine göre sırala
+                                usort($smsPackages, function($a, $b) {
+                                    return $a['sms_credits'] <=> $b['sms_credits'];
+                                });
+                                foreach ($smsPackages as $package):
+                                ?>
+                                    <label class="sms-package-option block cursor-pointer">
+                                        <input type="radio" name="sms_package" value="<?= $package['sms_credits'] ?>" class="peer hidden" data-credits="<?= $package['sms_credits'] ?>" data-price="<?= $package['price'] ?>" required>
+                                        <div class="border-2 border-gray-200 rounded-lg p-3 transition-all duration-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 peer-checked:shadow-lg hover:border-purple-300 h-full">
+                                            <div class="text-center">
+                                                <div class="text-sm font-semibold text-gray-900 mb-1">
+                                                    <?= number_format($package['sms_credits'], 0, ',', '.') ?> SMS
+                                                </div>
+                                                <div class="text-xs text-gray-500">
+                                                    <?= number_format($package['price'], 0, ',', '.') ?>₺
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </label>
-                            <?php endforeach; ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Notlar -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Notlar (Opsiyonel)
+                            </label>
+                            <textarea name="notes" rows="3" class="w-full p-2.5 border border-gray-300 rounded-lg input-focus text-sm" placeholder="SMS paketi tahsis notları..."></textarea>
                         </div>
                     </div>
-                    
-                    <!-- Notlar -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Notlar (Opsiyonel)
-                        </label>
-                        <textarea name="notes" rows="3" class="w-full p-2.5 border border-gray-300 rounded-lg input-focus text-sm" placeholder="SMS paketi tahsis notları..."></textarea>
+                    <div class="flex space-x-3 mt-5">
+                        <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition duration-150 text-sm font-medium">
+                            SMS Paketini Tahsis Et
+                        </button>
+                        <button type="button" onclick="closeAssignPlanSmsModal()" class="px-4 py-2.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-150 text-sm">
+                            İptal
+                        </button>
                     </div>
-                </div>
-                <div class="flex space-x-3 p-6 border-t border-gray-200">
-                    <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition duration-150 text-sm font-medium">
-                        SMS Paketini Tahsis Et
-                    </button>
-                    <button type="button" onclick="closeAssignSmsPackageModal()" class="px-4 py-2.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-150 text-sm">
-                        İptal
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -7086,7 +7079,20 @@ function loadMoreSuperadminEvents() {
                 document.getElementById('editCommunityFolderName').textContent = 'Klasör: ' + communityFolder;
                 document.getElementById('editCommunityName').value = communityData.name || '';
                 document.getElementById('editCommunityUniversity').value = communityData.university || '';
-                document.getElementById('editCommunityCode').value = communityData.community_code || communityData.code || '';
+                
+                // Topluluk kodunu 4 kutulu formata böl
+                const communityCode = (communityData.community_code || communityData.code || '').toString().toUpperCase();
+                const code1 = communityCode.length > 0 ? communityCode[0] : '';
+                const code2 = communityCode.length > 1 ? communityCode[1] : '';
+                const code3 = communityCode.length > 2 ? communityCode[2] : '';
+                const code4 = communityCode.length > 3 ? communityCode[3] : '';
+                
+                document.getElementById('editCommunityCode1').value = code1;
+                document.getElementById('editCommunityCode2').value = code2;
+                document.getElementById('editCommunityCode3').value = code3;
+                document.getElementById('editCommunityCode4').value = code4;
+                document.getElementById('editCommunityCode').value = communityCode; // Hidden input
+                
                 document.getElementById('editCommunityAdminUsername').value = (communityData.admin && communityData.admin.username) ? communityData.admin.username : '';
                 document.getElementById('editCommunityAdminPassword').value = ''; // Şifre gösterilmez
                 document.getElementById('editCommunityStatus').value = (communityData.status === 'active' || !communityData.status) ? 'active' : 'inactive';
