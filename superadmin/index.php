@@ -5608,26 +5608,21 @@ let isLoadingCommunities = false;
         const tierSelect = document.getElementById('filterTier');
         const clearBtn = document.getElementById('clearFiltersBtn');
         
-        // Debounced filtreleme
-        const debouncedFilter = debounce(performFilter, 200);
-        
-        // Arama input'u (inline handler'lar zaten var, ama ekstra güvenlik için)
+        // Arama input'u - Enter tuşu için
         if (searchInput) {
-            searchInput.addEventListener('input', function(e) {
-                debouncedFilter();
-            });
             searchInput.addEventListener('keyup', function(e) {
-                debouncedFilter();
+                if (e.key === 'Enter') {
+                    performFilter();
+                }
             });
         }
         
-        // Üniversite input'u (inline handler'lar zaten var, ama ekstra güvenlik için)
+        // Üniversite input'u - Enter tuşu için
         if (universityInput) {
-            universityInput.addEventListener('input', function(e) {
-                debouncedFilter();
-            });
             universityInput.addEventListener('keyup', function(e) {
-                debouncedFilter();
+                if (e.key === 'Enter') {
+                    performFilter();
+                }
             });
         }
         
