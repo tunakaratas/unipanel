@@ -408,7 +408,9 @@ try {
         
         // Debug log (her zaman - sorun tespiti için)
         error_log("Communities API: Üniversite filtresi aktif - Requested ID: '{$requested_university_id}'");
+        write_communities_log("=== Communities API Debug Started ===");
         write_communities_log("Requested university_id (normalized): '{$requested_university_id}'");
+        error_log("Communities API: Log dosyası: {$log_file}");
         $all_communities = [];
         $community_folders = glob($communities_dir . '/*', GLOB_ONLYDIR);
         if ($community_folders === false) {
