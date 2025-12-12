@@ -3561,7 +3561,7 @@ foreach ($community_details as $details) {
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h1 class="text-3xl font-bold text-gray-900 mb-2">Topluluklar</h1>
-                                    <p class="text-gray-600">Toplam <span class="font-bold text-purple-600"><?= count($communities) ?></span> topluluk</p>
+                                    <p class="text-gray-600">Toplam <span class="font-bold text-gray-900"><?= count($communities) ?></span> topluluk</p>
                                 </div>
                                 <button onclick="openCreateModal()" class="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3606,7 +3606,7 @@ foreach ($community_details as $details) {
                                 <!-- Durum -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Durum</label>
-                                    <select id="filterStatus" onchange="window.doSearch();" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                    <select id="filterStatus" onchange="window.doSearch();" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400">
                                         <option value="all">Tümü</option>
                                         <option value="active">Aktif</option>
                                         <option value="inactive">Kapalı</option>
@@ -3616,7 +3616,7 @@ foreach ($community_details as $details) {
                                 <!-- Plan -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Plan</label>
-                                    <select id="filterTier" onchange="window.doSearch();" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                    <select id="filterTier" onchange="window.doSearch();" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400">
                                         <option value="all">Tümü</option>
                                         <option value="standard">Standart</option>
                                         <option value="professional">Profesyonel</option>
