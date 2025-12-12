@@ -3692,115 +3692,90 @@ foreach ($community_details as $details) {
                     </div>
 
                 <?php elseif ($current_view === 'communities'): ?>
-                    <!-- Topluluk Yönetimi -->
-                    <div class="space-y-8">
-                        <!-- Topluluk Oluşturma Butonu -->
-                        <div class="bg-white p-6 rounded-xl card-shadow">
+                    <!-- Topluluk Yönetimi - TAMAMEN YENİDEN YAZILDI -->
+                    <div class="space-y-6">
+                        <!-- Başlık ve Oluştur Butonu -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <h2 class="text-2xl font-semibold text-gray-800 mb-2">Topluluk Yönetimi</h2>
-                                    <p class="text-gray-600">Yeni topluluk oluşturun veya mevcut toplulukları yönetin</p>
+                                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Topluluklar</h1>
+                                    <p class="text-gray-600">Toplam <span class="font-bold text-purple-600"><?= count($communities) ?></span> topluluk</p>
                                 </div>
-                                <button onclick="openCreateModal()" class="px-6 py-3 text-white color-primary rounded-lg font-semibold hover-primary transition duration-150 flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                <button onclick="openCreateModal()" class="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                     </svg>
-                                    Yeni Topluluk Oluştur
+                                    Yeni Topluluk
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Mevcut Topluluklar -->
-                        <div class="bg-white rounded-xl card-shadow">
-                            <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
-                                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                                    <div>
-                                        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                                            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
-                                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                            </div>
-                                            Mevcut Topluluklar
-                                        </h2>
-                                        <p class="text-sm text-gray-600 mt-2 ml-13">Toplam <span id="totalCommunitiesCount" class="font-bold text-purple-600 text-base"><?= count($communities) ?></span> topluluk</p>
+                        <!-- Arama ve Filtreler - BASİT VE ÇALIŞIR -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <!-- Arama -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Ara</label>
+                                    <div class="relative">
+                                        <input type="text" id="communitySearch" placeholder="Topluluk adı, klasör veya üniversite..." 
+                                               onkeyup="if(event.key==='Enter') window.doSearch();"
+                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
                                     </div>
                                 </div>
                                 
-                                <!-- Modern Arama ve Filtreleme -->
-                                <div class="bg-white rounded-xl p-5 shadow-md border border-gray-100">
-                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                                        <!-- Arama Kutusu -->
-                                        <div class="relative group">
-                                            <label class="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Genel Arama</label>
-                                            <div class="relative flex items-center">
-                                                <input type="text" id="communitySearch" placeholder="Topluluk adı, klasör veya üniversite ara..." onkeyup="if(event.key === 'Enter') { if(typeof window.filterCommunities === 'function') window.filterCommunities(); }" class="w-full pl-12 pr-20 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-gray-50 hover:bg-white text-gray-800 placeholder-gray-400">
-                                                <svg class="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                                </svg>
-                                                <button id="searchCommunityBtn" type="button" onclick="if(typeof window.filterCommunities === 'function') { window.filterCommunities(); } return false;" class="absolute right-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm font-semibold">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                                    </svg>
-                                                    Ara
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Üniversite Arama -->
-                                        <div class="relative group">
-                                            <label class="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Üniversite Filtresi</label>
-                                            <div class="relative flex items-center">
-                                                <input type="text" id="filterUniversity" placeholder="Üniversite adı ile ara..." onkeyup="if(event.key === 'Enter') { if(typeof window.filterCommunities === 'function') window.filterCommunities(); }" class="w-full pl-12 pr-20 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-gray-50 hover:bg-white text-gray-800 placeholder-gray-400">
-                                                <svg class="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                                </svg>
-                                                <button id="searchUniversityBtn" type="button" onclick="if(typeof window.filterCommunities === 'function') { window.filterCommunities(); } return false;" class="absolute right-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm font-semibold">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                                    </svg>
-                                                    Ara
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Filtreler ve Butonlar -->
-                                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
-                                        <div class="flex flex-wrap items-center gap-3 flex-1">
-                                            <!-- Durum Filtresi -->
-                                            <div class="flex items-center gap-2">
-                                                <label class="text-xs font-semibold text-gray-600 whitespace-nowrap">Durum:</label>
-                                                <select id="filterStatus" onchange="if(typeof window.filterCommunities === 'function') { window.filterCommunities(); }" class="px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all hover:border-purple-300 cursor-pointer min-w-[140px]">
-                                                    <option value="all">🔍 Tüm Durumlar</option>
-                                                    <option value="active">✅ Aktif</option>
-                                                    <option value="inactive">❌ Kapalı</option>
-                                                </select>
-                                            </div>
-                                            
-                                            <!-- Plan Filtresi -->
-                                            <div class="flex items-center gap-2">
-                                                <label class="text-xs font-semibold text-gray-600 whitespace-nowrap">Plan:</label>
-                                                <select id="filterTier" onchange="if(typeof window.filterCommunities === 'function') { window.filterCommunities(); }" class="px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white transition-all hover:border-purple-300 cursor-pointer min-w-[140px]">
-                                                    <option value="all">📦 Tüm Planlar</option>
-                                                    <option value="standard">⭐ Standart</option>
-                                                    <option value="professional">💼 Profesyonel</option>
-                                                    <option value="business">🚀 Business</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Sonuç ve Temizle -->
-                                        <div class="flex items-center gap-3">
-                                            <span id="filteredCount" class="text-sm font-semibold text-purple-600 bg-purple-50 px-3 py-2 rounded-lg hidden"></span>
-                                            <button id="clearFiltersBtn" type="button" onclick="if(typeof window.clearFilters === 'function') { window.clearFilters(); } return false;" class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                </svg>
-                                                Temizle
-                                            </button>
-                                        </div>
+                                <!-- Üniversite -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Üniversite</label>
+                                    <div class="relative">
+                                        <input type="text" id="filterUniversity" placeholder="Üniversite adı..." 
+                                               onkeyup="if(event.key==='Enter') window.doSearch();"
+                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                        <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <!-- Durum -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Durum</label>
+                                    <select id="filterStatus" onchange="window.doSearch();" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                        <option value="all">Tümü</option>
+                                        <option value="active">Aktif</option>
+                                        <option value="inactive">Kapalı</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Plan -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Plan</label>
+                                    <select id="filterTier" onchange="window.doSearch();" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                        <option value="all">Tümü</option>
+                                        <option value="standard">Standart</option>
+                                        <option value="professional">Profesyonel</option>
+                                        <option value="business">Business</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Butonlar -->
+                                <div class="flex items-end gap-2">
+                                    <button onclick="window.doSearch();" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+                                        Ara
+                                    </button>
+                                    <button onclick="window.clearSearch();" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">
+                                        Temizle
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Sonuç -->
+                            <div id="searchResult" class="text-sm text-gray-600 hidden"></div>
+                        </div>
                             
                             <?php if (empty($communities)): ?>
                                 <div class="p-8 text-center text-gray-500">
