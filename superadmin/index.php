@@ -3472,6 +3472,9 @@ foreach ($community_details as $details) {
                     </div>
 
                 <?php elseif ($current_view === 'communities'): ?>
+                    <!-- CSRF Token (JavaScript için) -->
+                    <input type="hidden" name="csrf_token" id="csrf_token" value="<?= generate_csrf_token() ?>">
+                    
                     <!-- Topluluk Yönetimi - TAMAMEN YENİDEN YAZILDI -->
                     <div class="space-y-6">
                         <!-- Başlık ve Oluştur Butonu -->
@@ -3773,48 +3776,51 @@ foreach ($community_details as $details) {
                                                 </div>
                                             </div>
                                             
-                                            <!-- Card Footer - Action Buttons -->
-                                            <div class="p-6 pt-4 bg-gray-50 border-t-2 border-gray-100">
+                                            <!-- Card Footer - Action Buttons - Modern ve Çalışır -->
+                                            <div class="p-6 pt-4 bg-gradient-to-br from-gray-50 to-purple-50 border-t-2 border-purple-200">
+                                                <!-- Ana Butonlar -->
                                                 <div class="grid grid-cols-2 gap-3 mb-3">
-                                                    <a href="../communities/<?= urlencode($community) ?>/login.php?auto_access=true&superadmin_login=<?= urlencode(superadmin_expected_token()) ?>" target="_blank" class="group/btn px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-md hover:shadow-lg">
-                                                        <svg class="w-4 h-4 mr-2 group-hover/btn:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <a href="../communities/<?= urlencode($community) ?>/login.php?auto_access=true&superadmin_login=<?= urlencode(superadmin_expected_token()) ?>" target="_blank" class="group px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105">
+                                                        <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                                         </svg>
                                                         Erişim
                                                     </a>
                                                     
-                                                    <a href="../communities/<?= urlencode($community) ?>/admin.php?superadmin_access=true" target="_blank" class="group/btn px-4 py-3 bg-white text-purple-600 border-2 border-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-md hover:shadow-lg">
-                                                        <svg class="w-4 h-4 mr-2 group-hover/btn:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <a href="../communities/<?= urlencode($community) ?>/index.php?view=dashboard&superadmin_access=true&superadmin_login=<?= urlencode(superadmin_expected_token()) ?>" target="_blank" class="group px-4 py-3 bg-white text-purple-600 border-2 border-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-200 font-bold text-sm flex items-center justify-center shadow-md hover:shadow-lg">
+                                                        <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                         </svg>
                                                         Yönetim
                                                     </a>
                                                 </div>
+                                                
+                                                <!-- Alt Butonlar -->
                                                 <div class="grid grid-cols-4 gap-2">
-                                                    <button onclick="openAssignPlanModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md">
-                                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <button onclick="openAssignPlanModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                         </svg>
                                                         Plan
                                                     </button>
                                                     
-                                                    <button onclick="openAssignSmsPackageModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md">
-                                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <button onclick="openAssignSmsPackageModal(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($community_details[$community]['name'] ?? 'Bilinmeyen Topluluk'), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-blue-600 border-2 border-blue-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                                                         </svg>
                                                         SMS
                                                     </button>
                                                     
-                                                    <button onclick="showCommunityQRCode('<?= htmlspecialchars($community, ENT_QUOTES) ?>', '<?= htmlspecialchars($community_details[$community]['name'] ?? $community, ENT_QUOTES) ?>')" class="px-3 py-2.5 bg-white text-purple-600 border-2 border-purple-300 rounded-lg hover:bg-purple-50 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md" title="QR Kod">
-                                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <button onclick="showCommunityQRCode('<?= htmlspecialchars($community, ENT_QUOTES) ?>', '<?= htmlspecialchars($community_details[$community]['name'] ?? $community, ENT_QUOTES) ?>')" class="px-3 py-2.5 bg-white text-green-600 border-2 border-green-300 rounded-lg hover:bg-green-50 hover:border-green-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105" title="QR Kod">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                                                         </svg>
                                                         QR
                                                     </button>
                                                     
-                                                    <button onclick="deleteCommunity(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-red-600 border-2 border-red-300 rounded-lg hover:bg-red-50 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md">
-                                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <button onclick="deleteCommunity(<?= htmlspecialchars(json_encode($community), ENT_QUOTES) ?>)" class="px-3 py-2.5 bg-white text-red-600 border-2 border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-all duration-200 font-semibold text-xs flex items-center justify-center shadow-sm hover:shadow-md transform hover:scale-105">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                         </svg>
                                                         Sil
@@ -6905,6 +6911,10 @@ function loadMoreSuperadminEvents() {
                 return;
             }
             
+            // CSRF token'ı al
+            const csrfInput = document.querySelector('input[name="csrf_token"]');
+            const csrfToken = csrfInput ? csrfInput.value : '';
+            
             // Form oluştur ve submit et
             const form = document.createElement('form');
             form.method = 'POST';
@@ -6921,6 +6931,15 @@ function loadMoreSuperadminEvents() {
             folderInput.name = 'folder';
             folderInput.value = community;
             form.appendChild(folderInput);
+            
+            // CSRF token ekle
+            if (csrfToken) {
+                const csrfInputField = document.createElement('input');
+                csrfInputField.type = 'hidden';
+                csrfInputField.name = 'csrf_token';
+                csrfInputField.value = csrfToken;
+                form.appendChild(csrfInputField);
+            }
             
             document.body.appendChild(form);
             form.submit();
