@@ -5505,15 +5505,22 @@ let isLoadingCommunities = false;
     
     // Arama fonksiyonu - Topluluk isimlerini HTML'den çeker
     function performSearch() {
+        console.log('=== performSearch() çağrıldı ===');
+        
         // Tüm topluluk kartlarını al
         const communityItems = document.querySelectorAll('.community-item');
+        console.log('Bulunan topluluk kartı sayısı:', communityItems.length);
         
         if (communityItems.length === 0) {
+            console.warn('Topluluk kartı bulunamadı, retry yapılıyor...');
             // Retry - belki henüz yüklenmedi
             setTimeout(function() {
                 const retryItems = document.querySelectorAll('.community-item');
+                console.log('Retry - Bulunan kart sayısı:', retryItems.length);
                 if (retryItems.length > 0) {
                     performSearch();
+                } else {
+                    console.error('Retry sonrası da kart bulunamadı!');
                 }
             }, 500);
             return;
@@ -5531,6 +5538,13 @@ let isLoadingCommunities = false;
         const universityTerm = universityInput ? universityInput.value.trim().toLowerCase() : '';
         const statusFilter = statusSelect ? statusSelect.value : 'all';
         const tierFilter = tierSelect ? tierSelect.value : 'all';
+        
+        console.log('Arama terimleri:', {
+            searchTerm: searchTerm,
+            universityTerm: universityTerm,
+            statusFilter: statusFilter,
+            tierFilter: tierFilter
+        });
         
         let visibleCount = 0;
         
@@ -5604,8 +5618,9 @@ let isLoadingCommunities = false;
         performSearch();
     }
     
-    // Global fonksiyonlar - Test için
+    // Global fonksiyonlar - Her zaman erişilebilir olmalı
     window.filterCommunities = function() {
+        console.log('filterCommunities çağrıldı');
         try {
             performSearch();
         } catch (error) {
@@ -5613,120 +5628,192 @@ let isLoadingCommunities = false;
             alert('Arama sırasında bir hata oluştu: ' + error.message);
         }
     };
-    window.clearFilters = clearAllFilters;
     
-    // Test fonksiyonu
-    window.testSearch = function() {
-        const items = document.querySelectorAll('.community-item');
-        const searchInput = document.getElementById('communitySearch');
-        alert('Test: ' + items.length + ' topluluk kartı bulundu\nArama input: ' + (searchInput ? 'Var' : 'Yok'));
-        if (items.length > 0 && searchInput) {
-            const firstItem = items[0];
-            const h3 = firstItem.querySelector('h3');
-            alert('İlk kart:\nH3 text: ' + (h3 ? h3.textContent : 'Bulunamadı') + '\nData-name: ' + firstItem.getAttribute('data-name'));
+    window.clearFilters = function() {
+        console.log('clearFilters çağrıldı');
+        try {
+            clearAllFilters();
+        } catch (error) {
+            console.error('Temizleme hatası:', error);
         }
     };
     
-    // Arama butonları için event listener'lar
-    function setupSearchButtons() {
-        // Arama butonlarını bul
+    // Test fonksiyonu - Debug için
+    window.testSearch = function() {
+        const items = document.querySelectorAll('.community-item');
+        const searchInput = document.getElementById('communitySearch');
+        const searchBtn = document.getElementById('searchCommunityBtn');
+        const universityInput = document.getElementById('filterUniversity');
+        const universityBtn = document.getElementById('searchUniversityBtn');
+        
+        console.log('=== TEST SONUÇLARI ===');
+        console.log('Topluluk kartı sayısı:', items.length);
+        console.log('Arama input:', searchInput ? 'Var' : 'YOK');
+        console.log('Arama butonu:', searchBtn ? 'Var' : 'YOK');
+        console.log('Üniversite input:', universityInput ? 'Var' : 'YOK');
+        console.log('Üniversite butonu:', universityBtn ? 'Var' : 'YOK');
+        
+        if (items.length > 0) {
+            const firstItem = items[0];
+            const h3 = firstItem.querySelector('h3');
+            console.log('İlk kart bilgileri:');
+            console.log('  H3 text:', h3 ? h3.textContent : 'Bulunamadı');
+            console.log('  Data-name:', firstItem.getAttribute('data-name'));
+            console.log('  Data-folder:', firstItem.getAttribute('data-folder'));
+            console.log('  Data-university:', firstItem.getAttribute('data-university'));
+        }
+        
+        // Event listener kontrolü
+        if (searchBtn) {
+            console.log('Arama butonu onclick:', typeof searchBtn.onclick);
+        }
+        if (searchInput) {
+            console.log('Arama input onkeyup:', typeof searchInput.onkeyup);
+        }
+        
+        alert('Test tamamlandı! Console\'a bakın (F12)');
+    };
+    
+    // Tüm event listener'ları kur - Basit ve direkt yaklaşım
+    function setupAllListeners() {
+        console.log('Event listener\'lar kuruluyor...');
+        
+        // Arama butonları
         const searchCommunityBtn = document.getElementById('searchCommunityBtn');
         const searchUniversityBtn = document.getElementById('searchUniversityBtn');
         
         if (searchCommunityBtn) {
-            searchCommunityBtn.addEventListener('click', function(e) {
+            searchCommunityBtn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('Arama butonu tıklandı');
                 performSearch();
-            });
+            };
+            console.log('Arama butonu listener eklendi');
+        } else {
+            console.error('Arama butonu bulunamadı!');
         }
         
         if (searchUniversityBtn) {
-            searchUniversityBtn.addEventListener('click', function(e) {
+            searchUniversityBtn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('Üniversite arama butonu tıklandı');
                 performSearch();
-            });
+            };
+            console.log('Üniversite arama butonu listener eklendi');
+        } else {
+            console.error('Üniversite arama butonu bulunamadı!');
         }
-    }
-    
-    // Enter tuşu için event listener'lar
-    function setupEnterKeyListeners() {
+        
+        // Enter tuşu
         const searchInput = document.getElementById('communitySearch');
         const universityInput = document.getElementById('filterUniversity');
         
         if (searchInput) {
-            searchInput.addEventListener('keyup', function(e) {
+            searchInput.onkeyup = function(e) {
                 if (e.key === 'Enter') {
+                    console.log('Enter tuşu basıldı (genel arama)');
                     performSearch();
                 }
-            });
+            };
+            console.log('Genel arama input listener eklendi');
+        } else {
+            console.error('Genel arama input bulunamadı!');
         }
         
         if (universityInput) {
-            universityInput.addEventListener('keyup', function(e) {
+            universityInput.onkeyup = function(e) {
                 if (e.key === 'Enter') {
+                    console.log('Enter tuşu basıldı (üniversite)');
                     performSearch();
                 }
-            });
+            };
+            console.log('Üniversite input listener eklendi');
+        } else {
+            console.error('Üniversite input bulunamadı!');
         }
-    }
-    
-    // Select'ler için event listener'lar
-    function setupSelectListeners() {
+        
+        // Select'ler
         const statusSelect = document.getElementById('filterStatus');
         const tierSelect = document.getElementById('filterTier');
         
         if (statusSelect) {
-            statusSelect.addEventListener('change', performSearch);
+            statusSelect.onchange = function() {
+                console.log('Durum filtresi değişti');
+                performSearch();
+            };
+            console.log('Durum select listener eklendi');
         }
         
         if (tierSelect) {
-            tierSelect.addEventListener('change', performSearch);
+            tierSelect.onchange = function() {
+                console.log('Plan filtresi değişti');
+                performSearch();
+            };
+            console.log('Plan select listener eklendi');
         }
-    }
-    
-    // Temizle butonu için event listener
-    function setupClearButton() {
+        
+        // Temizle butonu
         const clearBtn = document.getElementById('clearFiltersBtn');
         if (clearBtn) {
-            clearBtn.addEventListener('click', function(e) {
+            clearBtn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('Temizle butonu tıklandı');
                 clearAllFilters();
-            });
+            };
+            console.log('Temizle butonu listener eklendi');
+        } else {
+            console.error('Temizle butonu bulunamadı!');
         }
+        
+        console.log('Tüm event listener\'lar kuruldu');
     }
     
-    // Tüm event listener'ları kur
-    function setupAllListeners() {
-        setupSearchButtons();
-        setupEnterKeyListeners();
-        setupSelectListeners();
-        setupClearButton();
-    }
-    
-    // Sayfa yüklendiğinde başlat
+    // Sayfa yüklendiğinde başlat - Çoklu retry ile
     function init() {
+        let retryCount = 0;
+        const maxRetries = 10;
+        
         function doInit() {
+            const searchInput = document.getElementById('communitySearch');
+            const searchBtn = document.getElementById('searchCommunityBtn');
+            
+            if (!searchInput || !searchBtn) {
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    setTimeout(doInit, 200);
+                    return;
+                }
+            }
+            
             setupAllListeners();
+            
             // İlk yüklemede tüm kartları göster
             setTimeout(function() {
                 performSearch();
-            }, 100);
+            }, 200);
         }
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(doInit, 500);
+                setTimeout(doInit, 300);
             });
         } else {
-            setTimeout(doInit, 500);
+            setTimeout(doInit, 300);
         }
     }
     
     // Başlat
     init();
+    
+    // Ekstra güvenlik - window yüklendiğinde de dene
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            setupAllListeners();
+        }, 500);
+    });
     
     // DOM değişikliklerini izle
     setTimeout(function() {
