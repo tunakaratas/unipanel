@@ -7197,74 +7197,73 @@ function loadMoreSuperadminEvents() {
             }
         }
 
-        function openAssignPlanModal(communityFolder, communityName) {
+        function openAssignPlanSmsModal(communityFolder, communityName) {
             try {
-                const modal = document.getElementById('assignPlanModal');
+                const modal = document.getElementById('assignPlanSmsModal');
                 if (!modal) {
-                    console.error('assignPlanModal bulunamadı!');
+                    console.error('assignPlanSmsModal bulunamadı!');
                     alert('Modal bulunamadı. Sayfayı yenileyin.');
                     return;
                 }
+                
+                // Topluluk bilgilerini ayarla
+                document.getElementById('planSmsCommunityName').textContent = communityName;
                 document.getElementById('planCommunityFolder').value = communityFolder;
-                document.getElementById('planCommunityName').textContent = communityName;
-                // Varsayılan değerleri ayarla
+                document.getElementById('smsPackageCommunityFolder').value = communityFolder;
+                
+                // Plan formunu sıfırla
                 document.querySelector('input[name="plan_tier"][value="standard"]').checked = true;
                 document.getElementById('planMonths').value = '6';
                 updatePlanDetails();
+                
+                // SMS formunu sıfırla
+                document.getElementById('assignSmsPackageForm').reset();
+                document.getElementById('smsPackageCommunityFolder').value = communityFolder;
+                
+                // Plan sekmesini göster
+                switchTab('plan');
+                
+                // Modal'ı göster
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
-                modal.style.display = 'flex';
             } catch (error) {
-                console.error('openAssignPlanModal hatası:', error);
+                console.error('openAssignPlanSmsModal hatası:', error);
                 alert('Modal açılırken hata oluştu: ' + error.message);
             }
         }
 
-        function closeAssignPlanModal() {
+        function closeAssignPlanSmsModal() {
             try {
-                const modal = document.getElementById('assignPlanModal');
+                const modal = document.getElementById('assignPlanSmsModal');
                 if (modal) {
                     modal.classList.add('hidden');
                     modal.classList.remove('flex');
-                    modal.style.display = 'none';
                 }
             } catch (error) {
-                console.error('closeAssignPlanModal hatası:', error);
+                console.error('closeAssignPlanSmsModal hatası:', error);
             }
         }
         
-        function openAssignSmsPackageModal(communityFolder, communityName) {
-            try {
-                const modal = document.getElementById('assignSmsPackageModal');
-                if (!modal) {
-                    console.error('assignSmsPackageModal bulunamadı!');
-                    alert('Modal bulunamadı. Sayfayı yenileyin.');
-                    return;
-                }
-                document.getElementById('smsPackageCommunityFolder').value = communityFolder;
-                document.getElementById('smsPackageCommunityName').textContent = communityName;
-                // Formu sıfırla
-                document.getElementById('assignSmsPackageForm').reset();
-                document.getElementById('smsPackageCommunityFolder').value = communityFolder;
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                modal.style.display = 'flex';
-            } catch (error) {
-                console.error('openAssignSmsPackageModal hatası:', error);
-                alert('Modal açılırken hata oluştu: ' + error.message);
-            }
-        }
-        
-        function closeAssignSmsPackageModal() {
-            try {
-                const modal = document.getElementById('assignSmsPackageModal');
-                if (modal) {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                    modal.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('closeAssignSmsPackageModal hatası:', error);
+        function switchTab(tab) {
+            const planTab = document.getElementById('planTab');
+            const smsTab = document.getElementById('smsTab');
+            const tabPlanBtn = document.getElementById('tabPlan');
+            const tabSmsBtn = document.getElementById('tabSms');
+            
+            if (tab === 'plan') {
+                planTab.classList.remove('hidden');
+                smsTab.classList.add('hidden');
+                tabPlanBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                tabPlanBtn.classList.remove('text-gray-500');
+                tabSmsBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                tabSmsBtn.classList.add('text-gray-500');
+            } else if (tab === 'sms') {
+                planTab.classList.add('hidden');
+                smsTab.classList.remove('hidden');
+                tabSmsBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                tabSmsBtn.classList.remove('text-gray-500');
+                tabPlanBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600', 'bg-purple-50');
+                tabPlanBtn.classList.add('text-gray-500');
             }
         }
         
