@@ -75,7 +75,7 @@ Options -Indexes
 # URL Rewriting - Marketing Frontpage & Community Routing
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /fourkampus/
+    RewriteBase /
     
     # 1. Marketing Frontpage Redirection
     # Eğer root istenirse (fourkampus.com.tr/) direkt marketing klasöründeki index'i göster
@@ -84,7 +84,7 @@ Options -Indexes
     # Dosya veya klasör mevcut değilse ve sistem klasörlerinden biri değilse marketing içinde ara
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} !^/fourkampus/(api|communities|assets|superadmin|lib|system|tools|public|bootstrap|config|logs|marketing|admin-login\.php|qr-redirect\.php|favicon\.ico) [NC]
+    RewriteCond %{REQUEST_URI} !^/(api|communities|assets|superadmin|lib|system|tools|public|bootstrap|config|logs|marketing|admin-login\.php|qr-redirect\.php|favicon\.ico) [NC]
     RewriteRule ^(.*)$ marketing/$1 [L]
 
     # 2. Existing Community Routing
@@ -93,19 +93,19 @@ Options -Indexes
     RewriteRule ^communities/ - [L]
     
     # Communities URL routing: Route /communities/{slug}/ to index.php
-    RewriteCond %{REQUEST_URI} ^/fourkampus/communities/([a-z0-9_-]+)/?$ [NC]
+    RewriteCond %{REQUEST_URI} ^/communities/([a-z0-9_-]+)/?$ [NC]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^communities/([a-z0-9_-]+)/?$ communities/$1/index.php [L,QSA]
     
     # Communities URL routing: Route /communities/{slug} (no trailing slash) to index.php
-    RewriteCond %{REQUEST_URI} ^/fourkampus/communities/([a-z0-9_-]+)$ [NC]
+    RewriteCond %{REQUEST_URI} ^/communities/([a-z0-9_-]+)$ [NC]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^communities/([a-z0-9_-]+)$ communities/$1/index.php [L,QSA]
     
     # Communities URL routing with trailing content (but not PHP files)
-    RewriteCond %{REQUEST_URI} ^/fourkampus/communities/([a-z0-9_-]+)/(.+)$ [NC]
+    RewriteCond %{REQUEST_URI} ^/communities/([a-z0-9_-]+)/(.+)$ [NC]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} !\.php$
