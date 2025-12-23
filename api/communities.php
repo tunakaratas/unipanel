@@ -657,8 +657,10 @@ try {
             // Topluluk bilgilerini al
             $settings_query = $db->query("SELECT setting_key, setting_value FROM settings WHERE club_id = 1");
             $settings = [];
-            while ($row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
-                $settings[$row['setting_key']] = $row['setting_value'];
+            if ($settings_query) {
+                while ($row = $settings_query->fetchArray(SQLITE3_ASSOC)) {
+                    $settings[$row['setting_key']] = $row['setting_value'];
+                }
             }
             
             // İstatistikler
