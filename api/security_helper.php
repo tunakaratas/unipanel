@@ -20,13 +20,22 @@ function setSecureCORS() {
     $allowed_origins = [
         'https://fourkampus.com.tr',
         'https://www.fourkampus.com.tr',
+        'https://api.fourkampus.com.tr',
         'https://community.foursoftware.net',
         'https://app.foursoftware.net',
         'https://admin.foursoftware.net',
+        // Mobile app origins
+        'capacitor://localhost',
+        'ionic://localhost',
+        // Development origins
         'http://localhost',
         'http://127.0.0.1',
         'http://localhost:8080',
-        'http://127.0.0.1:8080'
+        'http://127.0.0.1:8080',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173'
     ];
     
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';

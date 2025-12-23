@@ -27,13 +27,14 @@ DirectoryIndex disabled
     Allow from all
 </FilesMatch>
 
-# CORS Headers (Apache 2.4+)
-<IfModule mod_headers.c>
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-    Header always set Access-Control-Max-Age "3600"
-</IfModule>
+# CORS Headers are managed by PHP (security_helper.php)
+# Do NOT set CORS headers in Apache - it conflicts with PHP's credential-aware CORS
+# <IfModule mod_headers.c>
+#     Header always set Access-Control-Allow-Origin "*"
+#     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+#     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+#     Header always set Access-Control-Max-Age "3600"
+# </IfModule>
 
 # OPTIONS request için özel işleme
 <IfModule mod_rewrite.c>

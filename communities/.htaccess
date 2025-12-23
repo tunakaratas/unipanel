@@ -9,7 +9,7 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /unipanel/communities/
+    RewriteBase /fourkampus/communities/
     
     # Allow direct access to PHP files
     RewriteCond %{REQUEST_FILENAME} -f
